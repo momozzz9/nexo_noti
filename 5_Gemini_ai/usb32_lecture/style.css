@@ -1,0 +1,405 @@
+/* 
+ * USB 3.2 Rev 1.1 Presentation Style - Enhanced
+ * Theme: Samsung Premium Dark Mode (Professional Engineering)
+ * Author: Antigravity AI
+ */
+
+:root {
+    --primary-color: #3b82f6; 
+    --accent-color: #60a5fa;
+    --bg-dark: #0a0a0c;
+    --card-bg: rgba(15, 15, 20, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --tech-blue: #1e293b;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Inter', 'Outfit', sans-serif;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+.presentation-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 배경 */
+.bg-gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(30, 64, 175, 0.1) 0%, transparent 50%);
+    z-index: -2;
+}
+
+.bg-pattern {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: -1;
+}
+
+/* 내비게이션 */
+.slide-nav {
+    display: flex;
+    align-items: center;
+    padding: 20px 40px;
+    gap: 20px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 10px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: 'Outfit';
+    transition: all 0.3s;
+    letter-spacing: 1px;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    transform: translateY(-2px);
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.progress-fill {
+    width: 10%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#slideIndicator {
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+/* 슬라이드 뷰포트 */
+#slide-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 40px;
+}
+
+.slide {
+    display: none;
+    width: 100%;
+    max-width: 1280px;
+    height: 100%;
+}
+
+.slide.active {
+    display: block;
+    animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 카드 공통 */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    padding: 40px 60px;
+    height: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
+}
+
+/* 타이틀 슬라이드 전용 */
+.title-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.badge {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--accent-color);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+}
+
+h1 {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+}
+
+h1 .accent {
+    background: linear-gradient(to right, #60a5fa, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    font-size: 1.8rem;
+    color: var(--text-dim);
+    font-weight: 300;
+}
+
+/* 헤더 및 섹션 */
+h2 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin-bottom: 30px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+h2::before {
+    content: "";
+    width: 8px;
+    height: 35px;
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+h3 {
+    font-size: 1.4rem;
+    color: var(--accent-color);
+    margin: 20px 0 15px;
+}
+
+/* 그리드 레이아웃 */
+.slide-grid, .slide-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+}
+
+/* 리스트 */
+.premium-list {
+    list-style: none;
+}
+
+.premium-list li {
+    padding: 12px 0 12px 35px;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.premium-list li::before {
+    content: "●";
+    position: absolute;
+    left: 10px;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+}
+
+/* 기술 박스 */
+.tech-box, .deep-dive-box, .callout-box {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid var(--glass-border);
+    padding: 24px;
+    border-radius: 20px;
+}
+
+.tech-box h4, .deep-dive-box h4 {
+    color: var(--success);
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 다이어그램 (CSS기반) */
+.striping-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 30px;
+    border-radius: 20px;
+}
+
+.data-source {
+    background: var(--primary-color);
+    padding: 10px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.lane-split {
+    display: flex;
+    gap: 40px;
+}
+
+.lane-path {
+    text-align: center;
+}
+
+.l-tag {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.block-stream {
+    background: var(--tech-blue);
+    border: 1px solid var(--primary-color);
+    padding: 15px;
+    border-radius: 10px;
+    font-family: 'Fira Code', monospace;
+}
+
+/* 테이블 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+th {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--accent-color);
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 인코딩 비주얼 */
+.frame-structure {
+    display: flex;
+    height: 60px;
+    margin: 20px 0;
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.sync-header {
+    width: 20%;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.payload {
+    width: 80%;
+    background: var(--tech-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 경고 및 체크리스트 */
+.warning-badge {
+    background: var(--danger);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.checklist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.check-group h4 {
+    border-bottom: 1px solid var(--primary-color);
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+/* 푸터 */
+.presentation-footer {
+    padding: 15px 40px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 스크롤바 커스텀 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+    .slide-grid, .slide-content, .checklist-grid {
+        grid-template-columns: 1fr;
+    }
+    h1 { font-size: 3rem; }
+}

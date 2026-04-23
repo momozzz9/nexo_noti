@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 기반 MX 하드웨어 개발 퍼포먼스 혁신 리포트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mxblue: '#1428A0',
+                        mxlightblue: '#4B6BFF',
+                        mxbg: '#F8F9FA',
+                        mxcrd: '#FFFFFF',
+                        mxtext: '#202124',
+                        mxgray: '#5F6368'
+                    },
+                    fontFamily: {
+                        sans: ['"Pretendard"', '"Apple SD Gothic Neo"', '"Noto Sans KR"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #F8F9FA; color: #202124; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 40vh; max-height: 400px; }
+        .tab-active { border-bottom: 2px solid #1428A0; color: #1428A0; font-weight: 700; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #5F6368; }
+        .tab-inactive:hover { color: #1428A0; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="font-sans antialiased overflow-x-hidden selection:bg-mxlightblue selection:text-white">
+
+<!-- Chosen Palette: Warm neutral background (#F8F9FA) with Samsung-inspired deep blue (#1428A0) accents for a professional, trustworthy, yet modern corporate feel. -->
+<!-- Application Structure Plan: Dashboard-style single page tailored for a Samsung MX HW developer. Starts with high-level impact (Hero + Charts), drills down into specific HW development tasks via Interactive Tabs (Concept -> Design -> Test), and concludes with an actionable adoption roadmap. This structure logically guides the user from the 'Why' (Vision) to the 'What' (Use Cases) to the 'How' (Implementation). -->
+<!-- Visualization & Content Choices: Radar Chart (Goal: Compare capabilities) -> Shows holistic improvement across speed/quality (Chart.js). Bar Chart (Goal: Show Change) -> Shows time reduction per phase (Chart.js). Interactive Tabs (Goal: Organize) -> Categorizes AI tools by HW phase without overwhelming the page. Process Grid (Goal: Inform) -> HTML/CSS structured layout. No SVG used. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<nav class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <span class="text-2xl mr-2">📱</span>
+                <span class="font-bold text-xl text-mxtext tracking-tight">AI for MX Hardware Dev</span>
+            </div>
+            <div class="flex items-center space-x-8">
+                <a href="#vision" class="text-sm font-medium text-mxgray hover:text-mxblue transition-colors">Vision & Impact</a>
+                <a href="#applications" class="text-sm font-medium text-mxgray hover:text-mxblue transition-colors">Core AI Applications</a>
+                <a href="#roadmap" class="text-sm font-medium text-mxgray hover:text-mxblue transition-colors">Adoption Roadmap</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <header class="mb-16 text-center" id="vision">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-mxtext mb-4 leading-tight">
+            삼성전자 DX부문 MX사업부<br/>
+            <span class="text-mxblue">하드웨어 상품화개발팀 AI 활용 가이드</span>
+        </h1>
+        <p class="text-lg text-mxgray max-w-3xl mx-auto mt-6 leading-relaxed">
+            본 리포트는 스마트폰, 웨어러블 등 첨단 모바일 디바이스 하드웨어 개발자가 생성형 AI 및 머신러닝 기반 EDA 툴을 적극 도입하여 업무 퍼포먼스를 비약적으로(10x) 높이기 위한 구체적인 전략과 방법론을 제시합니다.
+        </p>
+    </header>
+
+    <section class="mb-20">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-mxtext mb-2">AI 도입에 따른 퍼포먼스 변화 지표</h2>
+                <p class="text-mxgray">회로 설계, 부품 선정, 시뮬레이션, 검증 문서 작성 등 핵심 업무에서 기대되는 효율성 및 품질 향상도를 분석합니다. 아래 버튼을 클릭하여 시뮬레이션 결과를 확인하세요.</p>
+            </div>
+            
+            <div class="flex justify-center mb-8">
+                <button id="toggleDataBtn" class="bg-mxblue text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-blue-800 transition-colors transform hover:scale-105 active:scale-95">
+                    🚀 AI 최적화 적용 결과 보기
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="flex flex-col">
+                    <h3 class="text-lg font-semibold text-center mb-4">핵심 역량 변화 (Radar)</h3>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <p class="text-sm text-mxgray text-center mt-4">AI 도입 후 개발 속도, 설계 정확도, 원가 최적화 능력이 전반적으로 상승합니다.</p>
+                </div>
+                <div class="flex flex-col">
+                    <h3 class="text-lg font-semibold text-center mb-4">개발 단계별 소요 시간 (Bar)</h3>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                    <p class="text-sm text-mxgray text-center mt-4">반복적이고 소모적인 작업 시간이 대폭 감소하여 '선행 기술 검토'에 더 많은 시간을 할애할 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="applications" class="mb-20">
+        <h2 class="text-3xl font-bold text-mxtext mb-4">개발 파이프라인별 핵심 AI 툴 활용 방안</h2>
+        <p class="text-mxgray mb-8">상품화개발팀의 실제 업무 프로세스(기획/부품선정 - 회로설계 - 검증 - 문서화)에 맞춘 실질적인 AI 프롬프트 및 도구 활용법입니다. 탭을 클릭하여 각 단계별 상세 가이드를 탐색하세요.</p>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="flex border-b border-gray-200 overflow-x-auto">
+                <button class="tab-btn tab-active flex-1 py-4 px-6 text-center font-medium whitespace-nowrap transition-colors" data-target="tab-planning">
+                    📊 1. 스펙 기획 & 부품 선정
+                </button>
+                <button class="tab-btn tab-inactive flex-1 py-4 px-6 text-center font-medium whitespace-nowrap transition-colors" data-target="tab-design">
+                    ⚙️ 2. 회로 설계 & 배치 (EDA)
+                </button>
+                <button class="tab-btn tab-inactive flex-1 py-4 px-6 text-center font-medium whitespace-nowrap transition-colors" data-target="tab-verify">
+                    🔬 3. 시뮬레이션 & 검증
+                </button>
+                <button class="tab-btn tab-inactive flex-1 py-4 px-6 text-center font-medium whitespace-nowrap transition-colors" data-target="tab-doc">
+                    📝 4. 문서화 & DFM 검토
+                </button>
+            </div>
+
+            <div class="p-8 min-h-[400px]">
+                <div id="tab-planning" class="tab-content fade-in block">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                            <div class="text-3xl mb-4">🔍</div>
+                            <h3 class="text-xl font-bold text-mxblue mb-3">AI 데이터 분석기 활용</h3>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                                수많은 부품 데이터시트(Datasheet)와 벤더사의 파라미터 엑셀 파일을 일일이 확인하는 대신, ChatGPT (Advanced Data Analysis)를 활용합니다.
+                            </p>
+                            <div class="bg-white p-3 rounded border border-gray-200 text-xs font-mono text-gray-800">
+                                <strong>Prompt 예시:</strong><br/>
+                                "첨부된 5개 제조사의 PMIC 데이터시트에서 입력 전압, 출력 채널 수, 효율 커브 데이터, 패키지 사이즈를 추출하여 비교 테이블로 만들어줘. 가장 면적 대비 효율이 좋은 부품을 추천해."
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">과거 단종(EOL) 이슈 예측</h4>
+                                <p class="text-sm text-gray-600">과거 사내 ERP 및 PLM 데이터를 바탕으로 ML 모델을 적용하여, 신규 선정 부품의 수명 주기 및 수급 리스크를 미리 예측합니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">경쟁사 Teardown 분석</h4>
+                                <p class="text-sm text-gray-600">경쟁사 스마트폰 분해 보고서 텍스트를 LLM에 입력하여 주요 칩셋 아키텍처 변화 트렌드를 요약 브리핑 받습니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl sm:col-span-2">
+                                <h4 class="font-bold mb-2">🔥 Performance Impact</h4>
+                                <p class="text-sm text-gray-600">수십 종의 부품 검토 및 1차 BOM(Bill of Materials) 작성 시간이 기존 <strong>1주에서 2일로 단축</strong>됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-design" class="tab-content fade-in hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 bg-purple-50 p-6 rounded-xl border border-purple-100">
+                            <div class="text-3xl mb-4">⚡</div>
+                            <h3 class="text-xl font-bold text-purple-800 mb-3">AI-Assisted EDA Tools</h3>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                                Cadence, Mentor 등 주요 EDA 툴에 내장되고 있는 AI 코파일럿 및 클라우드 기반 자동 라우팅 엔진을 도입합니다.
+                            </p>
+                            <div class="bg-white p-3 rounded border border-gray-200 text-xs font-mono text-gray-800">
+                                <strong>Action Plan:</strong><br/>
+                                PCB Placement 단계에서 부품 간의 Signal flow, Power delivery network, Thermal 핫스팟을 고려한 'AI 클러스터링 배치' 기능을 적극 활용.
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">자동 회로도(Schematic) 리뷰</h4>
+                                <p class="text-sm text-gray-600">Netlist와 Rule Checker에 AI를 연동하여, Floating 핀, 잘못된 Decap 용량 매칭 등 휴먼 에러를 실시간으로 잡아냅니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">High-Speed Signal 라우팅</h4>
+                                <p class="text-sm text-gray-600">LPDDR, MIPI, PCIe 등 고속 인터페이스 배선 시 ML 기반 임피던스/길이 매칭 자동화 툴을 적용하여 튜닝 반복을 줄입니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl sm:col-span-2 bg-purple-600 text-white">
+                                <h4 class="font-bold mb-2">🔥 Performance Impact</h4>
+                                <p class="text-sm text-purple-100">모바일 기기 메인보드(HDI) Artwork 소요 시간이 <strong>약 40% 절감</strong>되며, Signal Integrity 이슈 발생 확률을 획기적으로 낮춥니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-verify" class="tab-content fade-in hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 bg-teal-50 p-6 rounded-xl border border-teal-100">
+                            <div class="text-3xl mb-4">🌡️</div>
+                            <h3 class="text-xl font-bold text-teal-800 mb-3">Predictive Simulation</h3>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                                유한요소해석(FEA)에 딥러닝 써로게이트 모델(Surrogate Model)을 결합하여, 방열(Thermal) 및 응력 해석 결과를 수 분 내에 예측합니다.
+                            </p>
+                        </div>
+                        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">스마트폰 발열 실시간 예측</h4>
+                                <p class="text-sm text-gray-600">AP 성능별, AP/PMIC 배치 간격별 발열 지도를 AI가 즉각적으로 생성하여 방열판(VC) 설계 최적안을 도출합니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">검증 테스트 케이스 자동 생성</h4>
+                                <p class="text-sm text-gray-600">Python 스크립트 작성 시 GitHub Copilot을 활용하여 계측기(오실로스코프 등) 자동화 제어 코드를 빠르게 작성합니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl sm:col-span-2">
+                                <h4 class="font-bold mb-2">🔥 Performance Impact</h4>
+                                <p class="text-sm text-gray-600">해석 Mesh를 짜고 돌리던 수 시간의 시뮬레이션 대기 시간이 <strong>수 초 단위로 단축</strong>되어, 하루에도 수십 번의 구조 변경 테스트가 가능해집니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-doc" class="tab-content fade-in hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 bg-amber-50 p-6 rounded-xl border border-amber-100">
+                            <div class="text-3xl mb-4">📑</div>
+                            <h3 class="text-xl font-bold text-amber-800 mb-3">Generative Documentation</h3>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                                개발 이력, 회로 수정 사항(ECO), 검증 결과 보고서 등을 작성할 때 사내 보안이 적용된 LLM(Samsung Gauss 등)을 적극 활용합니다.
+                            </p>
+                        </div>
+                        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">이슈 트래킹 요약</h4>
+                                <p class="text-sm text-gray-600">JIRA 또는 사내 ITS에 등록된 수십 개의 버그 리포트와 메일 히스토리를 요약하여 주간 보고 자료(PPT 텍스트)로 자동 변환합니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl">
+                                <h4 class="font-bold mb-2">제조기술 전달 문서 (DFM/SOP)</h4>
+                                <p class="text-sm text-gray-600">설계 변경점에 따른 SMT 공정 주의사항, 조립 가이드를 자연어로 자동 생성하여 구미/베트남 공장에 명확히 전달합니다.</p>
+                            </div>
+                            <div class="border border-gray-200 p-5 rounded-xl sm:col-span-2">
+                                <h4 class="font-bold mb-2">🔥 Performance Impact</h4>
+                                <p class="text-sm text-gray-600">엔지니어가 가장 기피하는 '문서 작업'에 소요되는 에너지를 <strong>최대 70% 감소</strong>시켜 설계 본연의 업무에 집중하게 합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="roadmap">
+        <h2 class="text-3xl font-bold text-mxtext mb-8 text-center">MX 하드웨어 개발자 AI 도입 로드맵</h2>
+        
+        <div class="relative max-w-4xl mx-auto">
+            <div class="absolute inset-0 flex items-center justify-center w-full">
+                <div class="h-full w-1 bg-blue-100"></div>
+            </div>
+            
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-gray-300 transform transition hover:-translate-y-2">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-gray-600 mb-4 mx-auto">1</div>
+                    <h3 class="text-lg font-bold text-center mb-2">Phase 1: 일상 업무 효율화</h3>
+                    <p class="text-sm text-center text-mxgray font-semibold mb-4">현재 적용 가능</p>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li>• 사내 LLM(Gauss) 이용한 이메일/보고서 초안 작성</li>
+                        <li>• 데이터시트 스펙 요약 및 번역</li>
+                        <li>• Python/C 자동화 스크립트 Copilot 활용</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-mxlightblue transform transition hover:-translate-y-2 mt-8 md:mt-0">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl font-bold text-mxblue mb-4 mx-auto">2</div>
+                    <h3 class="text-lg font-bold text-center mb-2">Phase 2: 설계 프로세스 연동</h3>
+                    <p class="text-sm text-center text-mxgray font-semibold mb-4">6개월 ~ 1년 내 달성</p>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li>• EDA 툴 내장 AI 라우팅 보조 기능 적용</li>
+                        <li>• ML 기반 부품 수급 및 단가 변동 예측 모델 활용</li>
+                        <li>• 회로도 DRC(Design Rule Check) 오류 패턴 딥러닝</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-mxblue transform transition hover:-translate-y-2 mt-8 md:mt-0">
+                    <div class="w-12 h-12 bg-mxblue rounded-full flex items-center justify-center text-xl font-bold text-white mb-4 mx-auto">3</div>
+                    <h3 class="text-lg font-bold text-center mb-2">Phase 3: 완전 예측형 개발</h3>
+                    <p class="text-sm text-center text-mxgray font-semibold mb-4">장기 비전 (2년+)</p>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li>• 기구 설계 연동형 실시간 Thermal/SI 자동 최적화</li>
+                        <li>• 요구 스펙 입력 시 회로 블록도(Block Diagram) 자동 생성</li>
+                        <li>• AI 기반 무인 자동화 검증 랩 구축</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="bg-white border-t border-gray-200 mt-20 py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-mxgray">
+        <p>Samsung Electronics DX Division | Mobile eXperience Business</p>
+        <p class="mt-2">Product Development Team - Hardware Engineering Transformation Strategy</p>
+    </div>
+</footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Tab Navigation Logic
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                
+                // Update Buttons
+                tabBtns.forEach(b => {
+                    b.classList.remove('tab-active');
+                    b.classList.add('tab-inactive');
+                });
+                btn.classList.add('tab-active');
+                btn.classList.remove('tab-inactive');
+
+                // Update Content
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                    content.classList.remove('block');
+                });
+                document.getElementById(targetId).classList.remove('hidden');
+                document.getElementById(targetId).classList.add('block');
+            });
+        });
+
+        // 2. Chart.js Initialization
+        Chart.defaults.font.family = '"Pretendard", "Apple SD Gothic Neo", sans-serif';
+        Chart.defaults.color = '#5F6368';
+
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        const barCtx = document.getElementById('barChart').getContext('2d');
+
+        // State variables for toggle
+        let isAIOptimized = false;
+
+        // Data Models
+        const radarDataNormal = [60, 75, 65, 80, 50]; // As-Is
+        const radarDataAI = [95, 85, 90, 85, 90];     // To-Be
+        
+        const barDataNormal = [20, 45, 30, 25]; // Hours per week (As-is)
+        const barDataAI = [5, 25, 15, 5];       // Hours per week (To-Be)
+
+        const radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['개발 스피드', '설계 정확도', '이슈 해결력', '원가/DFM', '선행 혁신 업무량'],
+                datasets: [{
+                    label: '현재 퍼포먼스 (Traditional)',
+                    data: radarDataNormal,
+                    backgroundColor: 'rgba(95, 99, 104, 0.2)',
+                    borderColor: 'rgba(95, 99, 104, 1)',
+                    pointBackgroundColor: 'rgba(95, 99, 104, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: '#E5E7EB' },
+                        grid: { color: '#E5E7EB' },
+                        pointLabels: { font: { size: 12, weight: 'bold' }, color: '#202124' },
+                        ticks: { display: false, min: 0, max: 100 }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        const barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['사양검토/부품선정', '회로도/PCB설계', '시뮬레이션/검증', '문서/보고서 작성'],
+                datasets: [{
+                    label: '주당 소요 시간 (시간)',
+                    data: barDataNormal,
+                    backgroundColor: '#4B6BFF',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Hours / Week' }
+                    },
+                    x: {
+                        ticks: {
+                            callback: function(value) {
+                                // Wrap long labels (16 char logic approx handled by Array mapping if needed, Chart.js auto-wraps arrays)
+                                const label = this.getLabelForValue(value);
+                                return label.length > 10 ? label.split('/') : label;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw + ' 시간';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 3. Toggle Logic
+        const toggleBtn = document.getElementById('toggleDataBtn');
+        toggleBtn.addEventListener('click', () => {
+            isAIOptimized = !isAIOptimized;
+
+            if(isAIOptimized) {
+                toggleBtn.innerHTML = '🔄 기존 퍼포먼스로 돌아가기';
+                toggleBtn.classList.replace('bg-mxblue', 'bg-gray-700');
+                toggleBtn.classList.replace('hover:bg-blue-800', 'hover:bg-gray-800');
+
+                // Update Radar
+                radarChart.data.datasets[0].label = 'AI 최적화 퍼포먼스 (AI-Assisted)';
+                radarChart.data.datasets[0].data = radarDataAI;
+                radarChart.data.datasets[0].backgroundColor = 'rgba(20, 40, 160, 0.3)';
+                radarChart.data.datasets[0].borderColor = '#1428A0';
+                radarChart.data.datasets[0].pointBackgroundColor = '#1428A0';
+
+                // Update Bar
+                barChart.data.datasets[0].data = barDataAI;
+                barChart.data.datasets[0].backgroundColor = '#1428A0';
+                
+            } else {
+                toggleBtn.innerHTML = '🚀 AI 최적화 적용 결과 보기';
+                toggleBtn.classList.replace('bg-gray-700', 'bg-mxblue');
+                toggleBtn.classList.replace('hover:bg-gray-800', 'hover:bg-blue-800');
+
+                // Update Radar
+                radarChart.data.datasets[0].label = '현재 퍼포먼스 (Traditional)';
+                radarChart.data.datasets[0].data = radarDataNormal;
+                radarChart.data.datasets[0].backgroundColor = 'rgba(95, 99, 104, 0.2)';
+                radarChart.data.datasets[0].borderColor = 'rgba(95, 99, 104, 1)';
+                radarChart.data.datasets[0].pointBackgroundColor = 'rgba(95, 99, 104, 1)';
+
+                // Update Bar
+                barChart.data.datasets[0].data = barDataNormal;
+                barChart.data.datasets[0].backgroundColor = '#4B6BFF';
+            }
+
+            radarChart.update();
+            barChart.update();
+        });
+
+    });
+</script>
+</body>
+</html>

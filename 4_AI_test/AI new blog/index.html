@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="매일 업데이트되는 AI 뉴스 블로그 - 최신 인공지능 트렌드, 기술 분석, 산업 동향">
+  <title>AI Pulse — 최신 AI 뉴스 & 트렌드</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===== 네비게이션 바 ===== -->
+  <nav class="navbar" id="navbar">
+    <a href="#" class="nav-logo">
+      <!-- AI Pulse 로고 SVG -->
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="6" fill="url(#logoGrad)"/>
+        <path d="M8 20L14 8L20 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="14" r="2" fill="white"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="28" y2="28">
+          <stop stop-color="#7c3aed"/><stop offset="1" stop-color="#3b82f6"/>
+        </linearGradient></defs>
+      </svg>
+      AI Pulse
+    </a>
+    <!-- 네비게이션 링크 -->
+    <ul class="nav-links">
+      <li><a href="#featured">헤드라인</a></li>
+      <li><a href="#live-feed">🔴 실시간</a></li>
+      <li><a href="#trending">트렌딩</a></li>
+      <li><a href="#timeline">타임라인</a></li>
+    </ul>
+    <!-- 검색 -->
+    <div class="nav-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" placeholder="뉴스 검색..." id="searchInput">
+    </div>
+  </nav>
+
+  <!-- ===== 히어로 섹션 ===== -->
+  <section class="hero">
+    <div class="hero-content">
+      <!-- 실시간 배지 -->
+      <div class="hero-badge">
+        <span class="pulse"></span>
+        실시간 업데이트 · 2026년 4월 19일
+      </div>
+      <h1>AI의 미래를 <span class="gradient">가장 먼저</span> 만나보세요</h1>
+      <p>Agentic AI, 프론티어 모델, 양자 컴퓨팅까지 — 매일 엄선된 AI 뉴스와 심층 분석을 제공합니다.</p>
+      <!-- 통계 -->
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="number" id="statArticles">247</div>
+          <div class="label">금주 기사</div>
+        </div>
+        <div class="hero-stat">
+          <div class="number" id="statSources">52</div>
+          <div class="label">뉴스 소스</div>
+        </div>
+        <div class="hero-stat">
+          <div class="number" id="statUpdates">24/7</div>
+          <div class="label">실시간 추적</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 메인 콘텐츠 ===== -->
+  <main class="main-content">
+
+    <!-- ===== 피처드 뉴스 ===== -->
+    <section id="featured">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="icon purple">🔥</span> 오늘의 헤드라인
+        </h2>
+        <a href="#" class="view-all">전체 보기 →</a>
+      </div>
+
+      <div class="featured-grid">
+        <!-- 메인 피처드 카드 -->
+        <article class="card-featured main" onclick="openArticle(this)">
+          <div class="card-image">
+            <div class="img-gradient g1"></div>
+            <!-- 장식 SVG -->
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="60" stroke="#7c3aed" stroke-width="1" fill="none" opacity="0.3"/>
+              <circle cx="100" cy="100" r="40" stroke="#3b82f6" stroke-width="0.5" fill="none" opacity="0.4"/>
+              <circle cx="100" cy="100" r="80" stroke="#06b6d4" stroke-width="0.5" fill="none" opacity="0.2"/>
+              <circle cx="70" cy="80" r="4" fill="#7c3aed" opacity="0.6"/>
+              <circle cx="130" cy="90" r="3" fill="#3b82f6" opacity="0.5"/>
+              <circle cx="90" cy="130" r="3" fill="#06b6d4" opacity="0.5"/>
+              <line x1="70" y1="80" x2="130" y2="90" stroke="#7c3aed" stroke-width="0.5" opacity="0.3"/>
+              <line x1="130" y1="90" x2="90" y2="130" stroke="#3b82f6" stroke-width="0.5" opacity="0.3"/>
+            </svg>
+            <div class="overlay"></div>
+          </div>
+          <div class="card-body">
+            <span class="card-tag tag-breaking">🔴 BREAKING</span>
+            <h3 class="card-title">Anthropic, Claude Opus 4.7 발표 — 자율 멀티스텝 작업 처리의 새 기준</h3>
+            <p class="card-excerpt">Anthropic이 Claude Opus 4.7을 출시했습니다. 향상된 소프트웨어 엔지니어링 능력, 자기 검증 기능, 고해상도 이미지 분석 등 혁신적인 기능을 탑재한 이번 모델은 자율 작업 처리의 새로운 기준을 제시합니다.</p>
+            <div class="card-meta">
+              <div class="author"><span class="avatar">JK</span> 김지현 기자</div>
+              <span>2시간 전</span>
+              <span>·</span>
+              <span>5분 읽기</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 서브 피처드 카드 -->
+        <article class="card-featured" onclick="openArticle(this)">
+          <div class="card-image">
+            <div class="img-gradient g2"></div>
+            <svg width="160" height="160" viewBox="0 0 160 160">
+              <rect x="40" y="40" width="80" height="80" rx="8" stroke="#06b6d4" stroke-width="1" fill="none" opacity="0.3"/>
+              <rect x="55" y="55" width="50" height="50" rx="4" stroke="#3b82f6" stroke-width="0.5" fill="none" opacity="0.4"/>
+              <circle cx="80" cy="80" r="8" fill="#06b6d4" opacity="0.3"/>
+            </svg>
+            <div class="overlay"></div>
+          </div>
+          <div class="card-body">
+            <span class="card-tag tag-trending">📈 TRENDING</span>
+            <h3 class="card-title">OpenAI, 생명과학 특화 모델 'GPT-Rosalind' 공개</h3>
+            <p class="card-excerpt">신약 개발, 유전체학, 단백질 공학 등 복잡한 과학 워크플로우를 지원하는 추론 모델로, Amgen과 Moderna가 초기 파트너로 참여합니다.</p>
+            <div class="card-meta">
+              <div class="author"><span class="avatar">PL</span> 이필주 기자</div>
+              <span>4시간 전</span>
+              <span>·</span>
+              <span>4분 읽기</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 최신 뉴스 그리드 ===== -->
+    <section id="latest">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="icon blue">⚡</span> 최신 뉴스
+        </h2>
+        <a href="#" class="view-all">전체 보기 →</a>
+      </div>
+
+      <div class="news-grid">
+        <!-- 뉴스 카드 1 -->
+        <article class="card-news" onclick="openArticle(this)">
+          <div class="card-image">
+            <div class="img-gradient g3"></div>
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <polygon points="60,20 100,90 20,90" stroke="#ec4899" stroke-width="1" fill="none" opacity="0.3"/>
+              <circle cx="60" cy="65" r="5" fill="#ec4899" opacity="0.3"/>
+            </svg>
+            <div class="overlay"></div>
+          </div>
+          <div class="card-body">
+            <span class="card-tag tag-product">🚀 PRODUCT</span>
+            <h3 class="card-title">Google, 데스크톱용 Gemini 앱 정식 출시</h3>
+            <p class="card-excerpt">Google이 Mac 및 Windows용 네이티브 Gemini 애플리케이션을 공식 출시했습니다.</p>
+            <div class="card-meta">
+              <div class="author"><span class="avatar">SY</span> 박수영</div>
+              <span>6시간 전</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 뉴스 카드 2 -->
+        <article class="card-news" onclick="openArticle(this)">
+          <div class="card-image">
+            <div class="img-gradient g4"></div>
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="40" cy="60" r="15" stroke="#7c3aed" stroke-width="0.8" fill="none" opacity="0.3"/>
+              <circle cx="80" cy="60" r="15" stroke="#3b82f6" stroke-width="0.8" fill="none" opacity="0.3"/>
+              <line x1="55" y1="60" x2="65" y2="60" stroke="#a78bfa" stroke-width="0.5" opacity="0.4"/>
+            </svg>
+            <div class="overlay"></div>
+          </div>
+          <div class="card-body">
+            <span class="card-tag tag-research">🔬 RESEARCH</span>
+            <h3 class="card-title">양자 컴퓨팅 + AI 결합, 복잡계 예측 정확도 획기적 향상</h3>
+            <p class="card-excerpt">양자-AI 하이브리드 접근법이 유체역학, 기후과학, 의학 시뮬레이션에서 뛰어난 성과를 보여주고 있습니다.</p>
+            <div class="card-meta">
+              <div class="author"><span class="avatar">MK</span> 최민규</div>
+              <span>8시간 전</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 뉴스 카드 3 -->
+        <article class="card-news" onclick="openArticle(this)">
+          <div class="card-image">
+            <div class="img-gradient g5"></div>
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <rect x="30" y="40" width="60" height="40" rx="4" stroke="#10b981" stroke-width="0.8" fill="none" opacity="0.3"/>
+              <circle cx="60" cy="60" r="6" fill="#10b981" opacity="0.2"/>
+            </svg>
+            <div class="overlay"></div>
+          </div>
+          <div class="card-body">
+            <span class="card-tag tag-analysis">📊 ANALYSIS</span>
+            <h3 class="card-title">PwC: AI 경제적 가치의 75%, 상위 20% 기업이 독점</h3>
+            <p class="card-excerpt">비즈니스 모델 재설계에 집중한 선도 기업들이 AI 경제 가치의 대부분을 차지하고 있습니다.</p>
+            <div class="card-meta">
+              <div class="author"><span class="avatar">HJ</span> 정현정</div>
+              <span>12시간 전</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 실시간 뉴스 피드 (RSS에서 자동 로딩) ===== -->
+    <section id="live-feed">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="icon pink">🔴</span> 실시간 글로벌 AI 뉴스
+        </h2>
+        <a href="#" class="view-all" onclick="fetchLiveNews(); return false;">🔄 새로고침</a>
+      </div>
+      <div class="news-grid" id="live-news-grid">
+        <div class="loading-text"><span class="loading-spinner"></span>최신 AI 뉴스를 불러오는 중...</div>
+      </div>
+    </section>
+
+    <!-- ===== 트렌딩 + 사이드바 ===== -->
+    <section id="trending">
+      <div class="content-with-sidebar">
+        <!-- 트렌딩 리스트 -->
+        <div>
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="icon green">📈</span> 트렌딩 토픽
+            </h2>
+          </div>
+          <div class="trending-list">
+            <!-- 트렌딩 아이템 1 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">01</span>
+              <div class="trending-info">
+                <div class="trending-title">Agentic AI: 대화형 AI에서 자율 실행형 AI로의 대전환</div>
+                <div class="trending-meta">🔥 조회수 15.2K · 128개 댓글 · 트렌딩 1위</div>
+              </div>
+            </div>
+            <!-- 트렌딩 아이템 2 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">02</span>
+              <div class="trending-info">
+                <div class="trending-title">OpenAI, $1,220억 펀딩 라운드로 기업가치 $8,520억 달성</div>
+                <div class="trending-meta">💰 조회수 12.8K · 95개 댓글 · 트렌딩 2위</div>
+              </div>
+            </div>
+            <!-- 트렌딩 아이템 3 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">03</span>
+              <div class="trending-info">
+                <div class="trending-title">Stanford AI Index 2026: 미-중 AI 성능 격차 사실상 해소</div>
+                <div class="trending-meta">🌏 조회수 10.5K · 87개 댓글 · 트렌딩 3위</div>
+              </div>
+            </div>
+            <!-- 트렌딩 아이템 4 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">04</span>
+              <div class="trending-info">
+                <div class="trending-title">GPT-5.4, Claude Mythos 5, Gemini 3.1 Pro — 프론티어 모델 대격돌</div>
+                <div class="trending-meta">⚔️ 조회수 9.3K · 76개 댓글 · 트렌딩 4위</div>
+              </div>
+            </div>
+            <!-- 트렌딩 아이템 5 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">05</span>
+              <div class="trending-info">
+                <div class="trending-title">Physical AI 로봇, 사전 훈련 없이 실시간 학습하는 시대</div>
+                <div class="trending-meta">🤖 조회수 8.1K · 64개 댓글 · 트렌딩 5위</div>
+              </div>
+            </div>
+            <!-- 트렌딩 아이템 6 -->
+            <div class="trending-item" onclick="openArticle(this)">
+              <span class="trending-num">06</span>
+              <div class="trending-info">
+                <div class="trending-title">Gartner: AI 성공 기업, 데이터 거버넌스에 4배 투자</div>
+                <div class="trending-meta">📊 조회수 7.4K · 53개 댓글 · 트렌딩 6위</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 사이드바 -->
+        <aside class="sidebar">
+          <!-- 뉴스레터 위젯 -->
+          <div class="sidebar-widget newsletter-widget">
+            <h3 class="widget-title">📬 AI Pulse 뉴스레터</h3>
+            <p>매일 아침, 엄선된 AI 뉴스를 이메일로 받아보세요. 10,000+ 구독자가 함께합니다.</p>
+            <form class="newsletter-form" onsubmit="subscribe(event)">
+              <input type="email" placeholder="이메일 주소 입력" required>
+              <button type="submit" class="btn-subscribe">무료 구독하기</button>
+            </form>
+          </div>
+
+          <!-- 태그 클라우드 위젯 -->
+          <div class="sidebar-widget">
+            <h3 class="widget-title">🏷️ 인기 태그</h3>
+            <div class="tag-cloud">
+              <span class="tag-item">Agentic AI</span>
+              <span class="tag-item">GPT-5</span>
+              <span class="tag-item">Claude</span>
+              <span class="tag-item">Gemini</span>
+              <span class="tag-item">양자컴퓨팅</span>
+              <span class="tag-item">로보틱스</span>
+              <span class="tag-item">멀티모달</span>
+              <span class="tag-item">AI 거버넌스</span>
+              <span class="tag-item">생명과학 AI</span>
+              <span class="tag-item">AI 투자</span>
+              <span class="tag-item">엔터프라이즈</span>
+              <span class="tag-item">오픈소스</span>
+            </div>
+          </div>
+
+          <!-- 빠른 통계 위젯 -->
+          <div class="sidebar-widget">
+            <h3 class="widget-title">📊 AI 산업 스냅샷</h3>
+            <div style="display:flex;flex-direction:column;gap:0.8rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.8rem;color:var(--text-secondary)">생성형 AI 채택률</span>
+                <span style="font-size:0.85rem;font-weight:700;color:#10b981">53%</span>
+              </div>
+              <div style="height:4px;background:#eee;border-radius:2px;">
+                <div style="height:100%;width:53%;background:linear-gradient(90deg,#10b981,#06b6d4);border-radius:2px;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.8rem;color:var(--text-secondary)">Q1 2026 AI 벤처 투자</span>
+                <span style="font-size:0.85rem;font-weight:700;color:#7c3aed">$485B</span>
+              </div>
+              <div style="height:4px;background:#eee;border-radius:2px;">
+                <div style="height:100%;width:78%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.8rem;color:var(--text-secondary)">엔터프라이즈 AI Agent 도입</span>
+                <span style="font-size:0.85rem;font-weight:700;color:#3b82f6">67%</span>
+              </div>
+              <div style="height:4px;background:#eee;border-radius:2px;">
+                <div style="height:100%;width:67%;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:2px;"></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===== 타임라인 ===== -->
+    <section id="timeline">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="icon pink">🕐</span> 이번 주 타임라인
+        </h2>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">4월 19일 (토)</div>
+          <div class="timeline-title">Anthropic, Claude Opus 4.7 및 'xhigh' 노력 계층 발표</div>
+          <div class="timeline-desc">자율 멀티스텝 작업, 자기 검증, 고해상도 이미지 분석 지원</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">4월 18일 (금)</div>
+          <div class="timeline-title">OpenAI, 생명과학 특화 모델 GPT-Rosalind 공개</div>
+          <div class="timeline-desc">신약 개발·유전체학 워크플로우 지원, Amgen·Moderna 파트너 참여</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">4월 17일 (목)</div>
+          <div class="timeline-title">Google DeepMind, Gemini Robotics-ER 1.6 발표</div>
+          <div class="timeline-desc">로보틱스 모델 차세대 버전 및 Gemini 3.1 Flash TTS 동시 공개</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">4월 16일 (수)</div>
+          <div class="timeline-title">Stanford, AI Index Report 2026 발간</div>
+          <div class="timeline-desc">미-중 AI 성능 격차 해소, 생성형 AI 채택률 53% 달성 보고</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">4월 15일 (화)</div>
+          <div class="timeline-title">AMD-프랑스, 유럽 AI 슈퍼컴퓨팅 인프라 구축 파트너십 체결</div>
+          <div class="timeline-desc">유럽 주권 컴퓨팅 강화를 위한 대규모 AI 인프라 투자 발표</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">4월 14일 (월)</div>
+          <div class="timeline-title">ActionAI, 미션 크리티컬 AI 워크플로우 $1,000만 시드 투자 유치</div>
+          <div class="timeline-desc">엔터프라이즈 AI 안정성 인프라 구축에 집중</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== 푸터 ===== -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-logo">AI Pulse</div>
+        <p>매일 업데이트되는 AI 뉴스 플랫폼.<br>최신 트렌드와 심층 분석을 제공합니다.</p>
+      </div>
+      <div class="footer-col">
+        <h4>카테고리</h4>
+        <a href="#">헤드라인</a><a href="#">기술 분석</a>
+        <a href="#">기업 동향</a><a href="#">연구 논문</a>
+      </div>
+      <div class="footer-col">
+        <h4>리소스</h4>
+        <a href="#">뉴스레터</a><a href="#">팟캐스트</a>
+        <a href="#">리포트</a><a href="#">이벤트</a>
+      </div>
+      <div class="footer-col">
+        <h4>소셜</h4>
+        <a href="#">Twitter / X</a><a href="#">LinkedIn</a>
+        <a href="#">YouTube</a><a href="#">Discord</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 AI Pulse. All rights reserved.</span>
+      <span>Powered by AI ✨</span>
+    </div>
+  </footer>
+
+  <!-- 스크롤 맨 위로 버튼 -->
+  <button class="scroll-top" id="scrollTopBtn" onclick="scrollToTop()">↑</button>
+
+  <!-- 자바스크립트 -->
+  <script src="script.js"></script>
+</body>
+</html>

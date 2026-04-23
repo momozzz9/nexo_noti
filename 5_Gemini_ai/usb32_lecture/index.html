@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB 3.2 Rev 1.1 Technical Deep Dive - Samsung HW Engineering</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@300;400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="bg-gradient"></div>
+        <div class="bg-pattern"></div>
+        
+        <nav class="slide-nav">
+            <button id="prevBtn" class="nav-btn">PREV</button>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <span id="slideIndicator">01 / 10</span>
+            <button id="nextBtn" class="nav-btn">NEXT</button>
+        </nav>
+
+        <main id="slide-viewport">
+            <!-- Slide 1: Title -->
+            <section class="slide active" data-index="1">
+                <div class="glass-card title-card">
+                    <div class="badge">Samsung HW Development Seminar</div>
+                    <h1>USB 3.2 <span class="accent">Revision 1.1</span><br>Technical Deep Dive</h1>
+                    <p class="subtitle">High-Speed Interface Design & Signal Integrity Challenges</p>
+                    <div class="divider"></div>
+                    <div class="footer-info">
+                        <span>Antigravity AI Engineering</span>
+                        <span>2026. 04. 20</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 2: Specification Evolution -->
+            <section class="slide" data-index="2">
+                <div class="glass-card">
+                    <h2>01. Specification Evolution & Architecture</h2>
+                    <div class="slide-grid">
+                        <div class="content-left">
+                            <h3>통합된 USB 3.2 에코시스템</h3>
+                            <p>USB 3.2 Rev 1.1은 기존의 USB 3.0(Gen 1) 및 USB 3.1(Gen 2)을 단일 사양으로 통합하고, Multi-lane 동작을 위한 물리적/논리적 계층 확장을 정의합니다.</p>
+                            <ul class="premium-list">
+                                <li><strong>USB 3.2 Gen 1x1:</strong> 5Gbps, 8b/10b 인코딩 (Legacy SuperSpeed)</li>
+                                <li><strong>USB 3.2 Gen 2x1:</strong> 10Gbps, 128b/132b 인코딩 (Legacy SuperSpeed+)</li>
+                                <li><strong>USB 3.2 Gen 1x2:</strong> 10Gbps (5Gbps x 2 Lanes), 8b/10b 인코딩</li>
+                                <li><strong>USB 3.2 Gen 2x2:</strong> 20Gbps (10Gbps x 2 Lanes), 128b/132b 인코딩</li>
+                            </ul>
+                        </div>
+                        <div class="content-right">
+                            <div class="tech-box">
+                                <h4>Key Architecture Update</h4>
+                                <p>물리 계층(PHY)의 데이터 전송률을 높이는 대신, Type-C의 가용 리소스를 병렬화하여 대역폭을 2배로 확장하는 전략을 취함. 이는 기존 Gen 2 PHY 설계 자산을 재활용하면서도 20Gbps를 달성할 수 있게 함.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 3: Multi-Lane Bonding Logic -->
+            <section class="slide" data-index="3">
+                <div class="glass-card">
+                    <h2>02. Multi-Lane Bonding & Striping</h2>
+                    <div class="slide-content">
+                        <p class="description">두 개의 물리적 Lane을 논리적으로 결합하여 단일 고속 데이터 파이프라인을 형성하는 핵심 기술</p>
+                        <div class="technical-detail">
+                            <div class="diagram-container">
+                                <div class="striping-diagram">
+                                    <div class="data-source">Link Layer Data Stream</div>
+                                    <div class="arrow-split">⬇</div>
+                                    <div class="lane-split">
+                                        <div class="lane-path">
+                                            <span class="l-tag">Lane 0</span>
+                                            <div class="block-stream">D0, D2, D4, D6...</div>
+                                        </div>
+                                        <div class="lane-path">
+                                            <span class="l-tag">Lane 1</span>
+                                            <div class="block-stream">D1, D3, D5, D7...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="deep-dive-box">
+                                <h4>Technical Deep Dive</h4>
+                                <ul>
+                                    <li><strong>Data Striping:</strong> 바이트 단위로 Lane 0과 Lane 1에 교차 분산 전송</li>
+                                    <li><strong>Symbol Alignment:</strong> 수신단에서 TS1/TS2 Ordered Sets를 사용하여 두 Lane 간의 상징적 정렬(Symbol Lock) 수행</li>
+                                    <li><strong>Throughput:</strong> Gen 2x2 기준, 이론적 대역폭 20Gbps 중 약 19.4Gbps의 유효 데이터 처리량 확보 (128b/132b 효율성 덕분)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 4: 128b/132b Encoding Detail -->
+            <section class="slide" data-index="4">
+                <div class="glass-card">
+                    <h2>03. Encoding & Scrambling (128b/132b)</h2>
+                    <div class="encoding-layout">
+                        <div class="encoding-visual">
+                            <div class="frame-structure">
+                                <div class="sync-header">Sync (4-bit)</div>
+                                <div class="payload">Payload (128-bit)</div>
+                            </div>
+                            <div class="sync-types">
+                                <div class="s-type"><span>Control (SKP)</span> 1100b</div>
+                                <div class="s-type"><span>Data (D)</span> 1010b</div>
+                            </div>
+                        </div>
+                        <div class="tech-table-container">
+                            <h3>Encoding Characteristics</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Efficiency</td>
+                                        <td>96.97% (8b/10b 대비 약 20% 향상)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sync Header</td>
+                                        <td>Frame Alignment 및 Clock Recovery를 위한 4-bit 패턴</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Scrambling</td>
+                                        <td>EMI 분산 및 DC Balance 유지를 위한 LFSR 알고리즘 적용</td>
+                                    </tr>
+                                    <tr>
+                                        <td>SKP Ordered Set</td>
+                                        <td>Clock Frequency 차이 보상을 위한 Elastic Buffer 제어용 심볼</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 5: Type-C Configuration Channel (CC) -->
+            <section class="slide" data-index="5">
+                <div class="glass-card">
+                    <h2>04. Type-C CC State Machine & Power</h2>
+                    <div class="cc-logic-grid">
+                        <div class="logic-flow">
+                            <h3>Connection State Machine</h3>
+                            <ul class="stepper">
+                                <li><strong>Unattached:</strong> Rd(Device) 또는 Rp(Host) 상태 대기</li>
+                                <li><strong>Attach Detection:</strong> CC 핀 전압 강하 감지 (vRd/vRp)</li>
+                                <li><strong>Orientation Detection:</strong> CC1/CC2 중 활성 핀 식별 (Flip 판단)</li>
+                                <li><strong>VCONN Switching:</strong> E-marker 케이블 전원 공급 및 PD 메시징 시작</li>
+                                <li><strong>Dual-Lane Entry:</strong> PD VDM(Vendor Defined Message) 협상을 통한 x2 모드 활성화</li>
+                            </ul>
+                        </div>
+                        <div class="power-guideline">
+                            <div class="warning-badge">HW Design Critical</div>
+                            <p><strong>Power Integrity:</strong> 20Gbps 동작 시 PHY의 소모 전력이 급증함. 특히 VDDA_1V8, VDD_0V9 라인의 Ripple 제어가 Jitter 성능에 결정적임.</p>
+                            <p><strong>PD Controller:</strong> x2 모드를 위해 CC 컨트롤러는 반드시 USB 3.2 x2 Link Training을 트리거할 수 있는 능력을 갖춰야 함.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: Physical De-skew & Elastic Buffer -->
+            <section class="slide" data-index="6">
+                <div class="glass-card">
+                    <h2>05. Lane-to-Lane Skew & De-skew Logic</h2>
+                    <div class="skew-deep-dive">
+                        <div class="skew-intro">
+                            <p>병렬 전송 시 두 Lane의 물리적 길이 차이로 인한 데이터 도달 시간차(Skew)는 시스템 안정성의 핵심 변수입니다.</p>
+                        </div>
+                        <div class="specs-grid">
+                            <div class="spec-card highlight">
+                                <h4>Max Allowable Skew</h4>
+                                <p class="value">6,400 ps (6.4ns)</p>
+                            </div>
+                            <div class="spec-card">
+                                <h4>Elastic Buffer Depth</h4>
+                                <p>수신단 PHY 내부에서 Skew를 흡수하기 위한 가변 깊이 버퍼</p>
+                            </div>
+                        </div>
+                        <div class="hw-cause-list">
+                            <h3>HW 설계 시 Skew 유발 요인</h3>
+                            <ul>
+                                <li><strong>PCB Trace Length:</strong> Lane 0과 Lane 1 간의 패턴 길이 편차 (Matching 0.25mm 이내 권장)</li>
+                                <li><strong>Material Variance:</strong> FR4 재질의 불균일한 유전율(Dk) 분포로 인한 전파 속도 차이</li>
+                                <li><strong>Connector/Via:</strong> 각 Lane이 거치는 Via 개수 및 커넥터 핀 구조의 비대칭성</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: LTSSM Transition & Error Recovery -->
+            <section class="slide" data-index="7">
+                <div class="glass-card">
+                    <h2>06. LTSSM & Link Training Sequence</h2>
+                    <div class="ltssm-detail">
+                        <div class="ltssm-steps">
+                            <div class="step">
+                                <span class="num">1</span>
+                                <h4>Polling.Active</h4>
+                                <p>TS1/TS2를 통한 비트/심볼 락 획득</p>
+                            </div>
+                            <div class="step">
+                                <span class="num">2</span>
+                                <h4>Polling.Configuration</h4>
+                                <p>Lane 수(x1 vs x2) 및 속도 협상</p>
+                            </div>
+                            <div class="step">
+                                <span class="num">3</span>
+                                <h4>Rx.EQ (Equalization)</h4>
+                                <p>Short/Long 채널 최적화를 위한 3단계 등화 과정</p>
+                            </div>
+                            <div class="step">
+                                <span class="num">4</span>
+                                <h4>U0 (Active)</h4>
+                                <p>정상 데이터 전송 시작</p>
+                            </div>
+                        </div>
+                        <div class="recovery-box">
+                            <h4>Recovery & Error Handling</h4>
+                            <p>링크 중 에러(LCRC/ECRC 실패) 감지 시 자동으로 Recovery 상태로 진입. 여기서 재훈련에 실패할 경우 하위 속도(Gen 2 -> Gen 1)로 강제 다운그레이드 수행.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: Advanced Power Management (U1, U2, U3) -->
+            <section class="slide" data-index="8">
+                <div class="glass-card">
+                    <h2>07. Power Management States & Latencies</h2>
+                    <div class="pm-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Description</th>
+                                    <th>Typical Exit Latency</th>
+                                    <th>Power Saving</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>U1</strong></td>
+                                    <td>Fast Idle (Clock Gating)</td>
+                                    <td>< 10 µs</td>
+                                    <td>Low</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>U2</strong></td>
+                                    <td>Slow Idle (Partial PHY Off)</td>
+                                    <td>~ 100 µs</td>
+                                    <td>Medium</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>U3</strong></td>
+                                    <td>Suspend (Software Managed)</td>
+                                    <td>> 10 ms</td>
+                                    <td>Maximum</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="lfps-box">
+                        <h4>LFPS (Low Frequency Periodic Signaling)</h4>
+                        <p>저전력 상태에서 링크를 깨우기 위한 신호(10~50MHz). HW 설계 시 LFPS 신호의 진폭(Amplitude) 및 듀티 사이클이 규격을 만족하지 못하면 Wake-up 실패의 원인이 됨.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 9: Signal Integrity (SI) Guidelines -->
+            <section class="slide" data-index="9">
+                <div class="glass-card">
+                    <h2>08. Signal Integrity & PCB Layout Guide</h2>
+                    <div class="si-guidelines">
+                        <div class="guideline-card">
+                            <h4>Impedance & Loss</h4>
+                            <ul>
+                                <li>Differential Impedance: 90Ω ~ 100Ω (±10%)</li>
+                                <li>Insertion Loss: < 6dB @ 5GHz (Nyquist for 10Gbps)</li>
+                                <li>Use Low-loss dielectric (e.g., Megtron 6) for long traces</li>
+                            </ul>
+                        </div>
+                        <div class="guideline-card">
+                            <h4>Routing Rules</h4>
+                            <ul>
+                                <li>P/N Length Matching: < 0.1mm (Intra-pair)</li>
+                                <li>Lane-to-Lane Matching: < 0.25mm (Inter-pair)</li>
+                                <li>Ground Stitching: Via 전환 시 반드시 GND Via 인접 배치</li>
+                                <li>Back-drilling: 커넥터 및 Via의 Stub 제거 필수</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="crosstalk-warning">
+                        <p><strong>Crosstalk Mitigation:</strong> TX와 RX 쌍 사이의 간격을 트레이스 폭의 5~6배 이상 확보하여 Near-end Crosstalk(NEXT) 차단 필요.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Final Implementation Checklist -->
+            <section class="slide" data-index="10">
+                <div class="glass-card final-summary">
+                    <h2>HW 설계 최종 체크리스트 (Samsung Focus)</h2>
+                    <div class="checklist-grid">
+                        <div class="check-group">
+                            <h4>Component Selection</h4>
+                            <ul>
+                                <li>USB 3.2 Gen 2x2 Certified PHY/Controller</li>
+                                <li>Redriver/Retimer 필요성 검토 (Trace > 4-inch)</li>
+                                <li>Full-Feature Type-C Receptacle (High-speed 인증)</li>
+                            </ul>
+                        </div>
+                        <div class="check-group">
+                            <h4>Verification (EVT/DVT)</h4>
+                            <ul>
+                                <li>Eye Diagram Mask Violation 체크</li>
+                                <li>Jitter decomposition (Rj, Dj) 분석</li>
+                                <li>LTSSM Log 분석 (Polling/Recovery 진입 빈도 확인)</li>
+                                <li>U-state 복구 시간 측정</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="closing-statement">
+                        성공적인 삼성전자 고성능 제품 개발을 위한 완벽한 인터페이스 설계를 지원합니다.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="presentation-footer">
+            <span>Samsung Electronics HW Engineering Team Seminar | Confidential Technical Material</span>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

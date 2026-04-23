@@ -1,0 +1,391 @@
+html_content = """
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비행기 게임</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB, #e0f6ff);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background-color: transparent;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .hidden { display: none !important; }
+        #score-board {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 2px 2px 0px white;
+        }
+        #start-screen, #game-over-screen {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { margin-top: 0; color: #2c3e50; font-size: 36px; }
+        p { color: #555; font-size: 18px; margin-bottom: 30px; }
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            background-color: #3498db;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: scale(1.05);
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div id="score-board">점수: <span id="score">0</span></div>
+        <div id="ui-layer">
+            <div id="start-screen">
+                <h1>비행기 게임</h1>
+                <p>방향키(↑, ↓, ←, →)를 사용하여 장애물을 피하세요!</p>
+                <button id="start-btn">게임 시작</button>
+            </div>
+            <div id="game-over-screen" class="hidden">
+                <h1>게임 오버!</h1>
+                <p>최종 점수: <span id="final-score">0</span></p>
+                <button id="restart-btn">다시 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreElement = document.getElementById('final-score');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        let isGameRunning = false;
+        let score = 0;
+        let frameCount = 0;
+        let animationId;
+
+        // Key states
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        // Event Listeners for controls
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = false;
+                e.preventDefault();
+            }
+        });
+
+        // Game Objects
+        const player = {
+            x: 100,
+            y: 250,
+            width: 50,
+            height: 30,
+            speed: 6,
+            color: '#e74c3c',
+            draw() {
+                ctx.fillStyle = this.color;
+                // Draw airplane shape
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width, this.y + this.height / 2);
+                ctx.lineTo(this.x, this.y);
+                ctx.lineTo(this.x + 10, this.y + this.height / 2);
+                ctx.lineTo(this.x, this.y + this.height);
+                ctx.fill();
+                
+                // Draw cockpit window
+                ctx.fillStyle = '#ecf0f1';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width - 15, this.y + this.height / 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+            },
+            update() {
+                if (keys.ArrowUp && this.y > 0) this.y -= this.speed;
+                if (keys.ArrowDown && this.y < canvas.height - this.height) this.y += this.speed;
+                if (keys.ArrowLeft && this.x > 0) this.x -= this.speed;
+                if (keys.ArrowRight && this.x < canvas.width - this.width) this.x += this.speed;
+            }
+        };
+
+        let obstacles = [];
+        let particles = [];
+        let clouds = [];
+
+        class Cloud {
+            constructor() {
+                this.x = canvas.width + Math.random() * 200;
+                this.y = Math.random() * canvas.height;
+                this.speed = Math.random() * 1 + 0.5;
+                this.size = Math.random() * 30 + 20;
+                this.opacity = Math.random() * 0.5 + 0.3;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.arc(this.x + this.size*0.8, this.y - this.size*0.3, this.size*0.8, 0, Math.PI*2);
+                ctx.arc(this.x + this.size*1.5, this.y, this.size*0.9, 0, Math.PI*2);
+                ctx.fill();
+            }
+            update() {
+                this.x -= this.speed;
+            }
+        }
+
+        class Obstacle {
+            constructor() {
+                this.width = Math.random() * 30 + 20;
+                this.height = Math.random() * 150 + 50;
+                this.x = canvas.width;
+                this.y = Math.random() > 0.5 ? 0 : canvas.height - this.height;
+                this.speed = 5 + (score * 0.05); // Increases speed as score goes up
+                this.color = '#2c3e50';
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                // Add some gradient
+                let grad = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y);
+                grad.addColorStop(0, '#34495e');
+                grad.addColorStop(1, '#2c3e50');
+                ctx.fillStyle = grad;
+                
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // border
+                ctx.strokeStyle = '#1a252f';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+            }
+            update() {
+                this.x -= this.speed;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.life = 1.0;
+                this.color = color;
+            }
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, 4, 4);
+                ctx.globalAlpha = 1.0;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.05;
+            }
+        }
+
+        function spawnObstacle() {
+            // Frequency depends on score
+            let spawnRate = Math.max(30, 90 - score * 2);
+            if (frameCount % Math.floor(spawnRate) === 0) {
+                obstacles.push(new Obstacle());
+            }
+        }
+
+        function spawnCloud() {
+            if (frameCount % 60 === 0) {
+                clouds.push(new Cloud());
+            }
+        }
+
+        function createExplosion(x, y) {
+            for(let i=0; i<30; i++) {
+                particles.push(new Particle(x, y, '#e74c3c'));
+                particles.push(new Particle(x, y, '#f1c40f'));
+            }
+        }
+
+        function checkCollision() {
+            // Shrink hit box slightly to make it fair
+            const hitBoxShrink = 5;
+            
+            for (let obs of obstacles) {
+                if (player.x + hitBoxShrink < obs.x + obs.width &&
+                    player.x + player.width - hitBoxShrink > obs.x &&
+                    player.y + hitBoxShrink < obs.y + obs.height &&
+                    player.y + player.height - hitBoxShrink > obs.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function initGame() {
+            player.x = 100;
+            player.y = 250;
+            obstacles = [];
+            particles = [];
+            clouds = [];
+            for(let i=0; i<5; i++) {
+                let c = new Cloud();
+                c.x = Math.random() * canvas.width;
+                clouds.push(c);
+            }
+            score = 0;
+            frameCount = 0;
+            scoreElement.innerText = score;
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            isGameRunning = true;
+            gameLoop();
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            createExplosion(player.x + player.width/2, player.y + player.height/2);
+            
+            // Draw one last frame to show explosion
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            clouds.forEach(c => c.draw());
+            obstacles.forEach(o => o.draw());
+            particles.forEach(p => p.draw());
+            
+            finalScoreElement.innerText = score;
+            setTimeout(() => {
+                gameOverScreen.classList.remove('hidden');
+            }, 500);
+        }
+
+        function gameLoop() {
+            if (!isGameRunning && particles.length === 0) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background clouds
+            spawnCloud();
+            clouds.forEach((cloud, index) => {
+                cloud.update();
+                cloud.draw();
+                if (cloud.x + cloud.size * 2 < 0) clouds.splice(index, 1);
+            });
+
+            if (isGameRunning) {
+                player.update();
+                player.draw();
+
+                spawnObstacle();
+
+                obstacles.forEach((obs, index) => {
+                    obs.update();
+                    obs.draw();
+
+                    // Remove off-screen obstacles and increase score
+                    if (obs.x + obs.width < 0) {
+                        obstacles.splice(index, 1);
+                        score += 10;
+                        scoreElement.innerText = score;
+                    }
+                });
+
+                if (checkCollision()) {
+                    gameOver();
+                }
+            }
+
+            // Particles for explosion
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            frameCount++;
+            if (isGameRunning || particles.length > 0) {
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        startBtn.addEventListener('click', initGame);
+        restartBtn.addEventListener('click', initGame);
+
+        // Draw initial scene
+        for(let i=0; i<5; i++) {
+            let c = new Cloud();
+            c.x = Math.random() * canvas.width;
+            clouds.push(c);
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        clouds.forEach(c => c.draw());
+        player.draw();
+    </script>
+</body>
+</html>
+"""
+
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(script_dir, "airplane_game.html")
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print(f"'{file_path}'에 파일이 성공적으로 생성되었습니다!")
