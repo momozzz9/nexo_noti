@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Economic Briefing Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        /* 탭 메뉴 스타일 */
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* 섹션 제어 */
+        .content-section { display: none; animation: fadeIn 0.4s ease-out; }
+        .content-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.85rem; color: #818cf8; margin-bottom: 8px; font-weight: 600; }
+        
+        input[type="email"], input[type="time"] {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .days-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .day-label {
+            flex: 1;
+            min-width: 60px;
+            padding: 10px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .day-label:has(input:checked) { background: var(--primary); border-color: var(--primary); color: white; }
+        .day-label input { display: none; }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* 수신인 목록 스타일 */
+        .subscriber-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .subscriber-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .sub-info { font-size: 0.9rem; }
+        .sub-email { font-weight: 600; color: #e2e8f0; }
+        .sub-meta { font-size: 0.75rem; color: #64748b; }
+        .delete-btn {
+            background: #f87171;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        #status { text-align: center; margin-top: 20px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Briefing Manager</h1>
+        <p class="subtitle">개인별 맞춤형 경제 요약 설정을 관리하세요</p>
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="showTab('tab-schedule')">📅 요일/시간</button>
+            <button class="tab-btn" onclick="showTab('tab-recipients')">👤 수신인 관리</button>
+            <button class="tab-btn" onclick="showTab('tab-share')">🔗 서비스 추천</button>
+        </div>
+
+        <!-- 탭 1: 요일/시간 설정 -->
+        <div id="tab-schedule" class="content-section active">
+            <form id="schedule-form">
+                <div class="input-group">
+                    <label>구독 이메일 (기존 구독자 정보가 업데이트됩니다)</label>
+                    <input type="email" id="target-email" placeholder="이메일을 입력하세요" required>
+                </div>
+                <div class="input-group">
+                    <label>발송 요일 선택</label>
+                    <div class="days-container">
+                        <label class="day-label"><input type="checkbox" name="days" value="Mon" checked>월</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Tue" checked>화</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Wed" checked>수</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Thu" checked>목</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Fri" checked>금</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Sat">토</label>
+                        <label class="day-label"><input type="checkbox" name="days" value="Sun">일</label>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>발송 시간 설정</label>
+                    <input type="time" id="pref-time" value="07:00">
+                </div>
+                <button type="submit" class="action-btn">설정 업데이트</button>
+            </form>
+        </div>
+
+        <!-- 탭 2: 수신인 관리 -->
+        <div id="tab-recipients" class="content-section">
+            <div class="input-group">
+                <label>신규 수신인 추가</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="email" id="new-email" placeholder="이메일 주소" style="flex:1;">
+                    <button onclick="addRecipient()" class="action-btn" style="width:80px; margin:0;">추가</button>
+                </div>
+            </div>
+            <label>현재 수신인 목록</label>
+            <div id="sub-list" class="subscriber-list">
+                <!-- 수신인 목록이 여기에 렌더링됨 -->
+            </div>
+        </div>
+
+        <!-- 탭 3: 서비스 추천 -->
+        <div id="tab-share" class="content-section" style="text-align: center; padding: 20px 0;">
+            <p style="color: #94a3b8; margin-bottom: 20px;">이 편리한 서비스를 동료나 친구에게 공유하세요!</p>
+            <button class="action-btn" onclick="shareService()">🔗 서비스 링크 복사하기</button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 즉시 수신인 목록 로드
+        window.onload = () => {
+            loadSubscribers();
+        };
+
+        function showTab(tabId) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            loadSubscribers(); // 탭 전환 시 항상 목록 갱신
+            document.getElementById('status').innerText = '';
+        }
+
+        const dayMap = { 'Mon':'월','Tue':'화','Wed':'수','Thu':'목','Fri':'금','Sat':'토','Sun':'일' };
+
+        // 이메일 입력 시 기존 설정 불러오기 (자동 완성)
+        document.getElementById('target-email').addEventListener('blur', async (e) => {
+            const email = e.target.value;
+            if (!email) return;
+            
+            try {
+                const res = await fetch('/subscribers');
+                const subs = await res.json();
+                const sub = subs.find(s => s.email === email);
+                
+                if (sub) {
+                    document.getElementById('pref-time').value = sub.time;
+                    const dayList = sub.days.split(',');
+                    document.querySelectorAll('input[name="days"]').forEach(cb => {
+                        cb.checked = dayList.includes(cb.value);
+                    });
+                    
+                    // 상단 안내 문구 변경
+                    const dayNames = dayList.map(d => dayMap[d] || d).join(',');
+                    document.querySelector('.subtitle').innerText = `현재 설정: [${dayNames}] ${sub.time} 발송 중`;
+                    
+                    document.getElementById('status').style.color = '#818cf8';
+                    document.getElementById('status').innerText = `ℹ️ ${email} 님의 기존 설정을 불러왔습니다.`;
+                }
+            } catch (err) {}
+        });
+
+        async function loadSubscribers() {
+            const listDiv = document.getElementById('sub-list');
+            if (!listDiv) return;
+            
+            try {
+                const res = await fetch('/subscribers');
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                
+                listDiv.innerHTML = '';
+                if (data.length === 0) {
+                    listDiv.innerHTML = '<p style="text-align:center; color:#64748b;">등록된 수신인이 없습니다.</p>';
+                    return;
+                }
+
+                data.forEach(sub => {
+                    const item = document.createElement('div');
+                    item.className = 'subscriber-item';
+                    item.innerHTML = `
+                        <div class="sub-info">
+                            <div class="sub-email">${sub.email}</div>
+                            <div class="sub-meta">${sub.days} | ${sub.time}</div>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="tool-btn" style="padding:5px 10px; font-size:0.75rem;" onclick="editSubscriber('${sub.email}', '${sub.days}', '${sub.time}')">수정</button>
+                            <button class="delete-btn" onclick="deleteSubscriber('${sub.email}')">삭제</button>
+                        </div>
+                    `;
+                    listDiv.appendChild(item);
+                });
+            } catch (e) {
+                listDiv.innerHTML = '<p style="color:#f87171; text-align:center;">목록 로드 실패 (서버 연결 확인)</p>';
+            }
+        }
+
+        // 특정 사용자의 설정을 불러와 수정 모드로 전환
+        function editSubscriber(email, days, time) {
+            // 요일/시간 탭으로 이동
+            const scheduleTabBtn = document.querySelector('.tab-btn[onclick*="tab-schedule"]');
+            showTab('tab-schedule');
+            scheduleTabBtn.classList.add('active'); // 시각적 활성화
+            
+            // 값 채우기
+            document.getElementById('target-email').value = email;
+            document.getElementById('pref-time').value = time;
+            
+            const dayList = days.split(',');
+            document.querySelectorAll('input[name="days"]').forEach(cb => {
+                cb.checked = dayList.includes(cb.value);
+            });
+            
+            // 안내 문구 동적 변경
+            const dayMap = { 'Mon':'월','Tue':'화','Wed':'수','Thu':'목','Fri':'금','Sat':'토','Sun':'일' };
+            const dayNames = dayList.map(d => dayMap[d] || d).join(',');
+            document.querySelector('.subtitle').innerText = `현재 설정: [${dayNames}] ${time} 발송 중`;
+            
+            document.getElementById('status').style.color = '#818cf8';
+            document.getElementById('status').innerText = `📝 ${email} 님의 설정을 수정 중입니다.`;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function addRecipient() {
+            const email = document.getElementById('new-email').value;
+            if(!email) return;
+            
+            await updateSubscription(email, "Mon,Tue,Wed,Thu,Fri", "07:00");
+            document.getElementById('new-email').value = '';
+            loadSubscribers();
+        }
+
+        async function deleteSubscriber(email) {
+            if(!confirm(`${email} 님을 수신인에서 삭제하시겠습니까?`)) return;
+            
+            const formData = new FormData();
+            formData.append('email', email);
+            
+            await fetch('/unsubscribe', { method: 'POST', body: formData });
+            loadSubscribers();
+        }
+
+        document.getElementById('schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('target-email').value;
+            const time = document.getElementById('pref-time').value;
+            const days = Array.from(document.querySelectorAll('input[name="days"]:checked')).map(cb => cb.value).join(',');
+            
+            await updateSubscription(email, days, time);
+        });
+
+        async function updateSubscription(email, days, time) {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch('/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `email=${encodeURIComponent(email)}&days=${encodeURIComponent(days)}&time=${encodeURIComponent(time)}`
+                });
+                
+                if (response.ok) {
+                    statusDiv.style.color = '#4ade80';
+                    statusDiv.innerText = '✅ 성공적으로 저장되었습니다.';
+                } else {
+                    statusDiv.innerText = '❌ 오류가 발생했습니다.';
+                }
+            } catch (e) {
+                statusDiv.innerText = '❌ 서버 통신 오류';
+            }
+        }
+
+        function shareService() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('서비스 주소가 복사되었습니다! 친구에게 전달해 주세요.');
+        }
+    </script>
+</body>
+</html>

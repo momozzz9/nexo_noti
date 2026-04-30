@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+requests
+beautifulsoup4
+schedule
+jinja2
+python-multipart
+python-dotenv
+openai

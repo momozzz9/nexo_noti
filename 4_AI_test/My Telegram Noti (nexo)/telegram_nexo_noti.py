@@ -29,6 +29,14 @@ import feedparser
 from datetime import datetime, timezone, timedelta
 from html import escape as html_escape
 
+# 보안 유틸리티 임포트
+try:
+    from utils.secret_guard import mask_text, check_env_files
+except ImportError:
+    # 유틸리티가 없는 경우를 대비한 기본 함수
+    def mask_text(t): return t
+    def check_env_files(d): pass
+
 # =============================================
 # Windows 콘솔 UTF-8 인코딩 설정
 # (cp949에서 이모지 출력 시 UnicodeEncodeError 방지)
@@ -123,6 +131,10 @@ def fetch_nexo_news(count: int = 3) -> list:
         if not entries:
             print("[경고] Nexo 관련 뉴스를 찾을 수 없습니다.")
             return []
+
+        # 최신순 정렬 (발행 시간 기준 내림차순)
+        # feedparser의 entries는 기본적으로 최신순인 경우가 많으나 명시적으로 정렬 수행
+        entries.sort(key=lambda x: x.get("published_parsed", (0,)), reverse=True)
 
         # 최신 뉴스 count개만 추출
         news_list = []
@@ -338,11 +350,13 @@ def send_telegram_message(bot_token: str, chat_id: str, message: str) -> bool:
                 print("[INFO] ✅ Telegram 메시지 전송 성공!")
                 return True
             else:
-                print(f"[경고] Telegram 전송 응답 오류: {result}")
+                # 민감 정보 마스킹 후 출력
+                print(f"[경고] Telegram 전송 응답 오류: {mask_text(str(result))}")
                 return False
         else:
             print(f"[오류] Telegram 메시지 전송 실패: {response.status_code}")
-            print(f"[오류] 응답: {response.text}")
+            # 민감 정보 마스킹 후 출력
+            print(f"[오류] 응답: {mask_text(response.text)}")
             return False
 
     except requests.exceptions.RequestException as e:
@@ -367,6 +381,11 @@ def main():
     print("🚀 정기 브리핑 시작")
     print(f"   실행 시간: {datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S KST')}")
     print("=" * 50)
+
+    # -----------------------------------------------
+    # Step 0: 보안 검사 (.env 파일 노출 경고)
+    # -----------------------------------------------
+    check_env_files(os.path.dirname(os.path.abspath(__file__)))
 
     # -----------------------------------------------
     # Step 1: .env 파일 로드 (로컬 테스트용)
@@ -407,7 +426,6 @@ def main():
     else:
         print("\n❌ 정기 브리핑 전송 실패!")
         sys.exit(1)
-
 
 # =============================================================================
 # 스크립트 직접 실행 시 main() 호출

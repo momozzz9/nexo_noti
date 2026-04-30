@@ -1,3 +1,9 @@
-# Telegram Nexo 정기 브리핑 스크립트 의존성
+# Telegram Nexo 브리핑 의존성
 requests>=2.28.0
 feedparser>=6.0.0
+
+# 연동된 경제 뉴스 이메일 봇 의존성
+jinja2
+beautifulsoup4
+python-dotenv
+openai

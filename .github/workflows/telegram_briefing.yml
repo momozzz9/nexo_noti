@@ -58,12 +58,8 @@ jobs:
       - name: 📦 의존성 설치
         run: |
           python -m pip install --upgrade pip
-          if [ -f "4_AI_test/My Telegram Noti (nexo)/requirements.txt" ]; then
-            pip install -r "4_AI_test/My Telegram Noti (nexo)/requirements.txt"
-          else
-            echo "requirements.txt not found. Installing base packages..."
-            pip install requests feedparser
-          fi
+          # 두 프로젝트의 모든 필요한 라이브러리 설치
+          pip install requests feedparser jinja2 beautifulsoup4 python-dotenv openai
 
       # -----------------------------------------------
       # Step 4: 정기 브리핑 스크립트 실행
@@ -73,6 +69,12 @@ jobs:
           # GitHub Secrets에서 환경 변수 주입
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # 이메일 발송용 Secrets (등록된 경우에만 작동)
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)/"4_AI_test/My Telegram Noti (nexo)"
+          # 모든 관련 폴더를 경로에 추가
+          export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/"4_AI_test/My Telegram Noti (nexo)":$(pwd)/"4_AI_test/My Email Noti (news)"
           python "4_AI_test/My Telegram Noti (nexo)/telegram_nexo_noti.py"
+
