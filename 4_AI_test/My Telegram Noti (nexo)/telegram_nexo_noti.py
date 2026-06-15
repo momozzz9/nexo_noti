@@ -523,56 +523,46 @@ def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_us
     else:
         msg += "  USDT/KRW: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
 
-    # 2. BTC/USDT 가격 정보 출력 처리 (USDT/KRW와 동일한 포맷: 방향아이콘 + 등락금액 + 등락률)
+    # 2. BTC/USDT 가격 정보 출력 처리 (가격 및 상승률 형식으로 단순화, BTC/KRW는 삭제됨)
     if btc_usd_info:
         btc_usd_price = btc_usd_info.get("trade_price", 0)
-        btc_change_direction = btc_usd_info.get("change_direction", "")  # RISE / FALL / EVEN
-        btc_change_price = btc_usd_info.get("change_price", 0)           # 전일 대비 변동 금액 (절대값)
-        btc_change_rate = btc_usd_info.get("change_rate_pct")            # 전일 대비 변동률 % (없으면 None)
+        btc_change_direction = btc_usd_info.get("change_direction", "")
+        btc_change_rate = btc_usd_info.get("change_rate_pct")     # 변동률 % (없으면 None)
 
-        # 변동 방향에 따른 아이콘 및 부호 설정 (USDT/KRW와 동일한 스타일)
+        # 변동 방향에 따른 부호 기호 설정 (+/-)
         if btc_change_direction == "RISE":
-            direction = "🔴 ▲"
             sign = "+"
         elif btc_change_direction == "FALL":
-            direction = "🔵 ▼"
             sign = "-"
         else:
-            direction = "⚪ ─"
             sign = ""
 
-        # 변동금액·변동률 정보가 모두 있는 경우 USDT/KRW와 동일한 포맷으로 표시
+        # 변화율 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
         if btc_change_direction and btc_change_rate is not None:
-            msg += f"  BTC/USDT: <b>${btc_usd_price:,.2f}</b> ({direction} {sign}${btc_change_price:,.2f}, {sign}{btc_change_rate:.2f}%)\n"
+            msg += f"  BTC/USDT: <b>${btc_usd_price:,.2f}</b> ({sign}{btc_change_rate:.2f}%)\n"
         else:
-            # fallback: 변동 정보 없이 현재가만 표시 (Coinbase 사용 시 등)
             msg += f"  BTC/USDT: <b>${btc_usd_price:,.2f}</b>\n"
     else:
         msg += "  BTC/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
 
-    # 3. NEXO/USDT 가격 정보 출력 처리 (USDT/KRW와 동일한 포맷: 방향아이콘 + 등락금액 + 등락률)
+    # 3. NEXO/USDT 가격 정보 출력 처리 (가격 및 상승률 형식으로 단순화)
     if nexo_info:
         nexo_usd_price = nexo_info.get("trade_price", 0)
-        nexo_change_direction = nexo_info.get("change_direction", "")  # RISE / FALL / EVEN
-        nexo_change_price = nexo_info.get("change_price", 0)           # 전일 대비 변동 금액 (절대값)
-        nexo_change_rate = nexo_info.get("change_rate_pct")            # 전일 대비 변동률 % (없으면 None)
+        nexo_change_direction = nexo_info.get("change_direction", "")
+        nexo_change_rate = nexo_info.get("change_rate_pct")   # 변동률 % (없으면 None)
 
-        # 변동 방향에 따른 아이콘 및 부호 설정 (USDT/KRW와 동일한 스타일)
+        # 변동 방향에 따른 부호 기호 결정 (+/-)
         if nexo_change_direction == "RISE":
-            direction = "🔴 ▲"
             sign = "+"
         elif nexo_change_direction == "FALL":
-            direction = "🔵 ▼"
             sign = "-"
         else:
-            direction = "⚪ ─"
             sign = ""
 
-        # 변동금액·변동률 정보가 모두 있는 경우 USDT/KRW와 동일한 포맷으로 표시
+        # 변동률 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
         if nexo_change_direction and nexo_change_rate is not None:
-            msg += f"  NEXO/USDT: <b>${nexo_usd_price:,.4f}</b> ({direction} {sign}${nexo_change_price:,.4f}, {sign}{nexo_change_rate:.2f}%)\n"
+            msg += f"  NEXO/USDT: <b>${nexo_usd_price:,.4f}</b> ({sign}{nexo_change_rate:.2f}%)\n"
         else:
-            # fallback: 변동 정보 없이 현재가만 표시
             msg += f"  NEXO/USDT: <b>${nexo_usd_price:,.4f}</b>\n"
     else:
         msg += "  NEXO/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
