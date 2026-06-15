@@ -2,7 +2,7 @@
 =============================================================================
 Telegram 정기 브리핑 스크립트
 =============================================================================
-실행 스케줄 (KST): 06:20 / 11:00 / 16:00 / 22:00 (하루 4회 실행)
+실행 스케줄 (KST): 06:00부터 24:00까지 2시간 간격으로 발송
 
 기능:
   1. Google News RSS를 통해 Nexo 관련 최신 뉴스 3건 수집 (무료, API 키 불필요)
@@ -188,7 +188,7 @@ def fetch_crypto_news(count: int = 3) -> list:
 # =============================================================================
 def fetch_upbit_prices() -> dict:
     """
-    업비트 API를 사용하여 USDT/KRW 및 BTC/KRW 현재 가격 정보를 조회한다.
+    업비트 API를 사용하여 USDT/KRW 현재 가격 정보를 조회한다.
     인증 없이 사용 가능한 공개 API이다.
 
     Returns:
@@ -197,13 +197,13 @@ def fetch_upbit_prices() -> dict:
     # 업비트 Ticker API 엔드포인트
     url = "https://api.upbit.com/v1/ticker"
     params = {
-        "markets": "KRW-USDT,KRW-BTC"    # USDT/KRW, BTC/KRW 마켓 동시 요청
+        "markets": "KRW-USDT"    # USDT/KRW 마켓만 요청
     }
     headers = {
         "accept": "application/json"
     }
 
-    print("[INFO] 업비트 현재가 조회 중 (USDT/KRW, BTC/KRW)...")
+    print("[INFO] 업비트 현재가 조회 중 (USDT/KRW)...")
 
     prices = {}
     try:
@@ -238,20 +238,25 @@ def fetch_upbit_prices() -> dict:
 def fetch_btc_usd_price() -> dict:
     """
     외부 API를 사용하여 BTC/USD 현재 가격 및 전일 대비 변화율 정보를 조회한다.
-    - Binance 24hr 티커 API를 우선 사용 (현재가 + 변화율 모두 포함)
-    - Coinbase는 변화율을 제공하지 않으므로 Binance로 대체
+    우선순위:
+      1. Binance 24hr 티커 API (현재가 + 변화율 모두 포함)
+      2. CoinGecko API (Binance 실패 시 fallback, 변화율 포함)
+      3. Coinbase API (변화율 없는 현재가만)
 
     Returns:
         BTC/USD 가격 정보 딕셔너리:
           trade_price       : 현재가 (float, USD)
-          change_price      : 전일 대비 변동 금액 (float, USD)
-          change_rate_pct   : 전일 대비 변동률 (float, %, 예: 2.13)
+          change_price      : 전일 대비 변동 금액 (float, USD, 절대값)
+          change_rate_pct   : 전일 대비 변동률 (float, %, 절대값)
           change_direction  : 변동 방향 문자열 ("RISE" / "FALL" / "EVEN")
           source            : 데이터 제공처 문자열
     """
     print("[INFO] BTC/USD 현재가 및 변화율 조회 중...")
 
-    # Binance 24hr 티커 API: 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회할 수 있습니다.
+    # -------------------------------------------------------
+    # 1순위: Binance 24hr 티커 API
+    # 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회할 수 있습니다.
+    # -------------------------------------------------------
     try:
         url_binance = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"
         response = requests.get(url_binance, timeout=10)
@@ -281,10 +286,60 @@ def fetch_btc_usd_price() -> dict:
                     "change_direction": change_direction,
                     "source": "Binance",
                 }
+        else:
+            print(f"[경고] Binance BTC/USD 응답 오류: 상태코드 {response.status_code}")
     except Exception as e:
         print(f"[경고] Binance 24hr 티커 조회 실패 (BTC/USD): {e}")
 
-    # fallback: 변화율 없이 Coinbase 현재가만 반환
+    # -------------------------------------------------------
+    # 2순위 fallback: CoinGecko API (변화율 포함)
+    # Binance가 차단되거나 실패할 경우 CoinGecko로 대체합니다.
+    # -------------------------------------------------------
+    try:
+        print("[INFO] BTC/USD CoinGecko fallback 시도 중...")
+        url_coingecko = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "bitcoin",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",   # 24시간 변동률 포함
+        }
+        response = requests.get(url_coingecko, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            btc_data = data.get("bitcoin", {})
+            trade_price = float(btc_data.get("usd", 0))
+            # CoinGecko는 24h 변동률(%)만 제공하며, 변동 금액은 직접 계산해야 합니다.
+            change_rate_pct = float(btc_data.get("usd_24h_change", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_rate_pct > 0:
+                    change_direction = "RISE"
+                elif change_rate_pct < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                # 전일 종가 역산: 현재가 / (1 + 변동률/100) → 변동 금액 계산
+                prev_price = trade_price / (1 + change_rate_pct / 100) if change_rate_pct != -100 else trade_price
+                change_price = abs(trade_price - prev_price)
+
+                print(f"[INFO] BTC/USD 현재가 (CoinGecko): ${trade_price:,.2f} ({change_rate_pct:+.2f}%)")
+                return {
+                    "trade_price": trade_price,
+                    "change_price": change_price,
+                    "change_rate_pct": abs(change_rate_pct),  # 절대값으로 저장
+                    "change_direction": change_direction,
+                    "source": "CoinGecko",
+                }
+        else:
+            print(f"[경고] CoinGecko BTC/USD 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        print(f"[경고] CoinGecko BTC/USD 조회 실패: {e}")
+
+    # -------------------------------------------------------
+    # 3순위 fallback: Coinbase (현재가만, 변화율 없음)
+    # -------------------------------------------------------
     try:
         url_coinbase = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
         response = requests.get(url_coinbase, timeout=10)
@@ -298,25 +353,32 @@ def fetch_btc_usd_price() -> dict:
     except Exception as e:
         print(f"[오류] Coinbase API 조회 실패: {e}")
 
+    # 모든 API 실패 시 빈 딕셔너리 반환
+    print("[오류] BTC/USD 가격 조회 모든 API 실패")
     return {}
 
 
 def fetch_nexo_price() -> dict:
     """
-    외부 API (Binance 24hr 티커)를 사용하여 NEXO/USDT 현재 가격 및 전일 대비 변화율 정보를 조회한다.
-    (NEXO 코인은 글로벌 거래소인 바이낸스에 상장되어 있어, API를 통해 무료로 실시간 시세를 조회할 수 있습니다.)
+    외부 API를 사용하여 NEXO/USD 현재 가격 및 전일 대비 변화율 정보를 조회한다.
+    우선순위:
+      1. Binance 24hr 티커 API (현재가 + 변화율 모두 포함)
+      2. CoinGecko API (Binance 실패 시 fallback, 변화율 포함)
 
     Returns:
         NEXO 가격 정보 딕셔너리:
-          trade_price       : 현재가 (float, USDT)
-          change_price      : 전일 대비 변동 금액 (float, USDT, 절대값)
+          trade_price       : 현재가 (float, USD)
+          change_price      : 전일 대비 변동 금액 (float, USD, 절대값)
           change_rate_pct   : 전일 대비 변동률 (float, %, 절대값)
           change_direction  : 변동 방향 문자열 ("RISE" / "FALL" / "EVEN")
           source            : 데이터 제공처 문자열
     """
-    print("[INFO] NEXO/USDT 현재가 및 변화율 조회 중...")
+    print("[INFO] NEXO/USD 현재가 및 변화율 조회 중...")
 
-    # Binance 24hr 티커 API: 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회합니다.
+    # -------------------------------------------------------
+    # 1순위: Binance 24hr 티커 API (NEXOUSDT)
+    # 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회합니다.
+    # -------------------------------------------------------
     try:
         url_binance = "https://api.binance.com/api/v3/ticker/24hr?symbol=NEXOUSDT"
         response = requests.get(url_binance, timeout=10)
@@ -338,7 +400,7 @@ def fetch_nexo_price() -> dict:
                 else:
                     change_direction = "EVEN"
 
-                print(f"[INFO] NEXO/USDT 현재가 (Binance 24hr): ${trade_price:,.4f} ({change_rate_pct:+.2f}%)")
+                print(f"[INFO] NEXO/USD 현재가 (Binance 24hr): ${trade_price:,.4f} ({change_rate_pct:+.2f}%)")
                 # 절대값으로 저장하고, 방향(change_direction)으로 부호를 판단합니다.
                 return {
                     "trade_price": trade_price,
@@ -347,11 +409,61 @@ def fetch_nexo_price() -> dict:
                     "change_direction": change_direction,
                     "source": "Binance",
                 }
+        else:
+            print(f"[경고] Binance NEXO/USD 응답 오류: 상태코드 {response.status_code}")
     except Exception as e:
         # 시세 조회 중 오류 발생 시 디버깅을 위해 예외 메시지 출력
-        print(f"[오류] Binance 24hr 티커 조회 실패 (NEXO): {e}")
+        print(f"[경고] Binance 24hr 티커 조회 실패 (NEXO): {e}")
 
-    # 예외가 발생하거나 가격 정보가 정상적이지 않을 경우 빈 딕셔너리 반환
+    # -------------------------------------------------------
+    # 2순위 fallback: CoinGecko API (변화율 포함)
+    # Binance가 차단되거나 실패할 경우 CoinGecko로 대체합니다.
+    # NEXO는 CoinGecko에 'nexo' id로 등록되어 있습니다.
+    # -------------------------------------------------------
+    try:
+        print("[INFO] NEXO/USD CoinGecko fallback 시도 중...")
+        url_coingecko = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "nexo",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",   # 24시간 변동률 포함
+        }
+        response = requests.get(url_coingecko, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            nexo_data = data.get("nexo", {})
+            trade_price = float(nexo_data.get("usd", 0))
+            # CoinGecko는 24h 변동률(%)만 제공하며, 변동 금액은 직접 계산해야 합니다.
+            change_rate_pct = float(nexo_data.get("usd_24h_change", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_rate_pct > 0:
+                    change_direction = "RISE"
+                elif change_rate_pct < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                # 전일 종가 역산: 현재가 / (1 + 변동률/100) → 변동 금액 계산
+                prev_price = trade_price / (1 + change_rate_pct / 100) if change_rate_pct != -100 else trade_price
+                change_price = abs(trade_price - prev_price)
+
+                print(f"[INFO] NEXO/USD 현재가 (CoinGecko): ${trade_price:,.4f} ({change_rate_pct:+.2f}%)")
+                return {
+                    "trade_price": trade_price,
+                    "change_price": change_price,
+                    "change_rate_pct": abs(change_rate_pct),  # 절대값으로 저장
+                    "change_direction": change_direction,
+                    "source": "CoinGecko",
+                }
+        else:
+            print(f"[경고] CoinGecko NEXO/USD 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        print(f"[오류] CoinGecko NEXO/USD 조회 실패: {e}")
+
+    # 모든 API 실패 시 빈 딕셔너리 반환
+    print("[오류] NEXO/USD 가격 조회 모든 API 실패")
     return {}
 
 
@@ -411,97 +523,84 @@ def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_us
     else:
         msg += "  USDT/KRW: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
 
-    # 2. 업비트 BTC/KRW 출력 처리
-    btc_krw_info = upbit_prices.get("KRW-BTC")
-    if btc_krw_info:
-        trade_price = btc_krw_info.get("trade_price", 0)
-        change = btc_krw_info.get("change", "")
-        change_rate = btc_krw_info.get("change_rate", 0)
-        change_price = btc_krw_info.get("change_price", 0)
-
-        # 전일 대비 변동 방향에 따른 아이콘 및 기호 설정
-        if change == "RISE":
-            direction = "🔴 ▲"
-            sign = "+"
-        elif change == "FALL":
-            direction = "🔵 ▼"
-            sign = "-"
-        else:
-            direction = "⚪ ─"
-            sign = ""
-
-        msg += f"  BTC/KRW: <b>{trade_price:,.0f}원</b> ({direction} {sign}{change_price:,.0f}원, {sign}{change_rate * 100:.2f}%)\n"
-    else:
-        msg += "  BTC/KRW: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
-
-    # 3. BTC/USD 가격 정보 출력 처리 (변화율 포함)
+    # 2. BTC/USDT 가격 정보 출력 처리 (가격 및 상승률 형식으로 단순화, BTC/KRW는 삭제됨)
     if btc_usd_info:
         btc_usd_price = btc_usd_info.get("trade_price", 0)
-        source = btc_usd_info.get("source", "API")
         btc_change_direction = btc_usd_info.get("change_direction", "")
-        btc_change_price = btc_usd_info.get("change_price")       # 변동 금액 (없으면 None)
         btc_change_rate = btc_usd_info.get("change_rate_pct")     # 변동률 % (없으면 None)
 
-        # 변화율 정보가 있는 경우 방향 아이콘과 함께 표시, 없으면 현재가만 표시
-        if btc_change_direction and btc_change_price is not None and btc_change_rate is not None:
-            # 변동 방향에 따른 아이콘 및 기호 설정
-            if btc_change_direction == "RISE":
-                direction = "🔴 ▲"
-                sign = "+"
-            elif btc_change_direction == "FALL":
-                direction = "🔵 ▼"
-                sign = "-"
-            else:
-                direction = "⚪ ─"
-                sign = ""
-            msg += f"  BTC/USD: <b>${btc_usd_price:,.2f}</b> ({direction} {sign}${btc_change_price:,.2f}, {sign}{btc_change_rate:.2f}%, 출처: {source})\n"
-        else:
-            # fallback: 변화율 정보 없이 현재가만 표시 (Coinbase 사용 시)
-            msg += f"  BTC/USD: <b>${btc_usd_price:,.2f}</b> (출처: {source})\n"
-    else:
-        msg += "  BTC/USD: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
-
-    # 4. NEXO/USD 가격 정보 출력 처리 (변화율 + 원화 환산 포함)
-    if nexo_info:
-        nexo_usd_price = nexo_info.get("trade_price", 0)
-        source = nexo_info.get("source", "API")
-        nexo_change_direction = nexo_info.get("change_direction", "")
-        nexo_change_price = nexo_info.get("change_price")     # 변동 금액 (없으면 None)
-        nexo_change_rate = nexo_info.get("change_rate_pct")   # 변동률 % (없으면 None)
-
-        # 변동 방향 아이콘 및 기호 결정
-        if nexo_change_direction == "RISE":
-            direction = "🔴 ▲"
+        # 변동 방향에 따른 부호 기호 설정 (+/-)
+        if btc_change_direction == "RISE":
             sign = "+"
-        elif nexo_change_direction == "FALL":
-            direction = "🔵 ▼"
+        elif btc_change_direction == "FALL":
             sign = "-"
         else:
-            direction = "⚪ ─"
             sign = ""
 
-        # USDT/KRW 환율이 있으면 원화 환산 가격도 함께 표시합니다.
-        if usdt_krw_rate > 0:
-            nexo_krw_price = nexo_usd_price * usdt_krw_rate
-            if nexo_change_price is not None and nexo_change_rate is not None:
-                msg += (
-                    f"  NEXO/USD: <b>${nexo_usd_price:,.4f}</b>"
-                    f" ({direction} {sign}${nexo_change_price:,.4f}, {sign}{nexo_change_rate:.2f}%,"
-                    f" 약 {nexo_krw_price:,.0f}원, 출처: {source})\n"
-                )
-            else:
-                msg += f"  NEXO/USD: <b>${nexo_usd_price:,.4f}</b> (약 {nexo_krw_price:,.0f}원, 출처: {source})\n"
+        # 변화율 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
+        if btc_change_direction and btc_change_rate is not None:
+            msg += f"  BTC/USDT: <b>${btc_usd_price:,.2f}</b> ({sign}{btc_change_rate:.2f}%)\n"
         else:
-            # 원화 환산 불가 시 달러 기준 가격만 표시
-            if nexo_change_price is not None and nexo_change_rate is not None:
-                msg += (
-                    f"  NEXO/USD: <b>${nexo_usd_price:,.4f}</b>"
-                    f" ({direction} {sign}${nexo_change_price:,.4f}, {sign}{nexo_change_rate:.2f}%, 출처: {source})\n"
-                )
-            else:
-                msg += f"  NEXO/USD: <b>${nexo_usd_price:,.4f}</b> (출처: {source})\n"
+            msg += f"  BTC/USDT: <b>${btc_usd_price:,.2f}</b>\n"
     else:
-        msg += "  NEXO/USD: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
+        msg += "  BTC/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
+
+    # 3. NEXO/USDT 가격 정보 출력 처리 (가격 및 상승률 형식으로 단순화)
+    if nexo_info:
+        nexo_usd_price = nexo_info.get("trade_price", 0)
+        nexo_change_direction = nexo_info.get("change_direction", "")
+        nexo_change_rate = nexo_info.get("change_rate_pct")   # 변동률 % (없으면 None)
+
+        # 변동 방향에 따른 부호 기호 결정 (+/-)
+        if nexo_change_direction == "RISE":
+            sign = "+"
+        elif nexo_change_direction == "FALL":
+            sign = "-"
+        else:
+            sign = ""
+
+        # 변동률 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
+        if nexo_change_direction and nexo_change_rate is not None:
+            msg += f"  NEXO/USDT: <b>${nexo_usd_price:,.4f}</b> ({sign}{nexo_change_rate:.2f}%)\n"
+        else:
+            msg += f"  NEXO/USDT: <b>${nexo_usd_price:,.4f}</b>\n"
+    else:
+        msg += "  NEXO/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
+
+    msg += "\n"
+
+    # --- Nexo 최신 뉴스 섹션 (Nexo 뉴스가 암호화폐 뉴스보다 먼저 나오도록 수정) ---
+    msg += "📰 <b>Nexo 최신 뉴스 (Top 3)</b>\n"
+    if nexo_news:
+        for i, news in enumerate(nexo_news, 1):
+            title = html_escape(news.get("title", "제목 없음"))
+            source = html_escape(news.get("source", "알 수 없음"))
+            url = news.get("url", "")
+
+            # 발행 시간 파싱 및 한국 시간(KST)으로 변환
+            published = news.get("published_at", "")
+            time_str = ""
+            if published:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    pub_dt = parsedate_to_datetime(published)
+                    pub_kst = pub_dt.astimezone(KST)
+                    time_str = pub_kst.strftime("%m/%d %H:%M")
+                except (ValueError, TypeError):
+                    time_str = ""
+
+            # HTML 링크로 뉴스 제목 구성
+            if url:
+                msg += f"\n{i}. <a href='{url}'>{title}</a>\n"
+            else:
+                msg += f"\n{i}. {title}\n"
+
+            msg += f"   📎 {source}"
+            if time_str:
+                msg += f" | {time_str}"
+            msg += "\n"
+    else:
+        msg += "  ⚠️ 현재 Nexo 관련 뉴스가 없습니다.\n"
 
     msg += "\n"
 
@@ -537,41 +636,6 @@ def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_us
             msg += "\n"
     else:
         msg += "  ⚠️ 현재 암호화폐 관련 뉴스가 없습니다.\n"
-
-    msg += "\n"
-
-    # --- Nexo 최신 뉴스 섹션 ---
-    msg += "📰 <b>Nexo 최신 뉴스 (Top 3)</b>\n"
-    if nexo_news:
-        for i, news in enumerate(nexo_news, 1):
-            title = html_escape(news.get("title", "제목 없음"))
-            source = html_escape(news.get("source", "알 수 없음"))
-            url = news.get("url", "")
-
-            # 발행 시간 파싱 및 한국 시간(KST)으로 변환
-            published = news.get("published_at", "")
-            time_str = ""
-            if published:
-                try:
-                    from email.utils import parsedate_to_datetime
-                    pub_dt = parsedate_to_datetime(published)
-                    pub_kst = pub_dt.astimezone(KST)
-                    time_str = pub_kst.strftime("%m/%d %H:%M")
-                except (ValueError, TypeError):
-                    time_str = ""
-
-            # HTML 링크로 뉴스 제목 구성
-            if url:
-                msg += f"\n{i}. <a href='{url}'>{title}</a>\n"
-            else:
-                msg += f"\n{i}. {title}\n"
-
-            msg += f"   📎 {source}"
-            if time_str:
-                msg += f" | {time_str}"
-            msg += "\n"
-    else:
-        msg += "  ⚠️ 현재 Nexo 관련 뉴스가 없습니다.\n"
 
     msg += "\n━━━━━━━━━━━━━━━"
 
