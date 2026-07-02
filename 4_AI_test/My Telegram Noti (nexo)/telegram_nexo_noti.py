@@ -2,7 +2,7 @@
 =============================================================================
 Telegram 정기 브리핑 스크립트
 =============================================================================
-실행 스케줄 (KST): 하루 3번 (07:00, 16:00, 22:00) 발송
+실행 스케줄 (KST): 매일 06:00~23:00까지 2시간 단위 (06:00, 08:00, ..., 22:00 KST) 발송
 
 기능:
   1. Google News RSS를 통해 Nexo 관련 최신 뉴스 3건 수집 (무료, API 키 불필요)
@@ -181,6 +181,17 @@ def fetch_crypto_news(count: int = 3) -> list:
     암호화폐 관련 일반 최신 뉴스를 수집한다. (기본 3건)
     """
     return fetch_google_news("cryptocurrency", count)
+
+
+def fetch_binance_news(count: int = 3) -> list:
+    """
+    Google News RSS를 사용하여 바이낸스(Binance) 관련 최신 뉴스를 수집한다. (기본 3건)
+    사용자 요청에 따라 새로 추가된 뉴스 수집 함수입니다.
+    """
+    # 콘솔에 바이낸스 뉴스 수집 시작을 알림
+    print("[INFO] Google News RSS에서 'Binance' 뉴스 수집 중...")
+    # "Binance" 키워드를 쿼리로 하여 뉴스 데이터를 조회 및 반환
+    return fetch_google_news("Binance", count)
 
 
 # =============================================================================
@@ -470,7 +481,7 @@ def fetch_nexo_price() -> dict:
 # =============================================================================
 # 3. 메시지 텍스트 생성
 # =============================================================================
-def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_usd_info: dict, nexo_info: dict = None) -> str:
+def build_message(crypto_news: list, binance_news: list, nexo_news: list, upbit_prices: dict, btc_usd_info: dict, nexo_info: dict = None) -> str:
     """
     수집한 데이터를 Telegram 메시지 형태로 구성한다.
     Telegram은 HTML 형식을 지원하므로 HTML 태그를 사용한다.
@@ -569,42 +580,8 @@ def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_us
 
     msg += "\n"
 
-    # --- Nexo 최신 뉴스 섹션 (Nexo 뉴스가 암호화폐 뉴스보다 먼저 나오도록 수정) ---
-    msg += "📰 <b>Nexo 최신 뉴스 (Top 3)</b>\n"
-    if nexo_news:
-        for i, news in enumerate(nexo_news, 1):
-            title = html_escape(news.get("title", "제목 없음"))
-            source = html_escape(news.get("source", "알 수 없음"))
-            url = news.get("url", "")
-
-            # 발행 시간 파싱 및 한국 시간(KST)으로 변환
-            published = news.get("published_at", "")
-            time_str = ""
-            if published:
-                try:
-                    from email.utils import parsedate_to_datetime
-                    pub_dt = parsedate_to_datetime(published)
-                    pub_kst = pub_dt.astimezone(KST)
-                    time_str = pub_kst.strftime("%m/%d %H:%M")
-                except (ValueError, TypeError):
-                    time_str = ""
-
-            # HTML 링크로 뉴스 제목 구성
-            if url:
-                msg += f"\n{i}. <a href='{url}'>{title}</a>\n"
-            else:
-                msg += f"\n{i}. {title}\n"
-
-            msg += f"   📎 {source}"
-            if time_str:
-                msg += f" | {time_str}"
-            msg += "\n"
-    else:
-        msg += "  ⚠️ 현재 Nexo 관련 뉴스가 없습니다.\n"
-
-    msg += "\n"
-
-    # --- 암호화폐 관련 최신 뉴스 Top 3 섹션 ---
+    # --- 1. 암호화폐 관련 최신 뉴스 Top 3 섹션 ---
+    # 사용자 요청에 따라 가장 먼저 암호화폐 뉴스를 배치합니다.
     msg += "📰 <b>암호화폐 관련 최신 뉴스 (Top 3)</b>\n"
     if crypto_news:
         for i, news in enumerate(crypto_news, 1):
@@ -636,6 +613,78 @@ def build_message(crypto_news: list, nexo_news: list, upbit_prices: dict, btc_us
             msg += "\n"
     else:
         msg += "  ⚠️ 현재 암호화폐 관련 뉴스가 없습니다.\n"
+
+    msg += "\n"
+
+    # --- 2. 바이낸스 관련 최신 뉴스 Top 3 섹션 ---
+    # 사용자 요청에 따라 두 번째로 바이낸스 뉴스를 배치합니다. (신규 추가된 섹션)
+    msg += "📰 <b>바이낸스 최신 뉴스 (Top 3)</b>\n"
+    if binance_news:
+        for i, news in enumerate(binance_news, 1):
+            title = html_escape(news.get("title", "제목 없음"))
+            source = html_escape(news.get("source", "알 수 없음"))
+            url = news.get("url", "")
+
+            # 발행 시간 파싱 및 한국 시간(KST)으로 변환
+            published = news.get("published_at", "")
+            time_str = ""
+            if published:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    pub_dt = parsedate_to_datetime(published)
+                    pub_kst = pub_dt.astimezone(KST)
+                    time_str = pub_kst.strftime("%m/%d %H:%M")
+                except (ValueError, TypeError):
+                    time_str = ""
+
+            # HTML 링크로 뉴스 제목 구성
+            if url:
+                msg += f"\n{i}. <a href='{url}'>{title}</a>\n"
+            else:
+                msg += f"\n{i}. {title}\n"
+
+            msg += f"   📎 {source}"
+            if time_str:
+                msg += f" | {time_str}"
+            msg += "\n"
+    else:
+        msg += "  ⚠️ 현재 바이낸스 관련 뉴스가 없습니다.\n"
+
+    msg += "\n"
+
+    # --- 3. Nexo 최신 뉴스 섹션 ---
+    # 사용자 요청에 따라 마지막 순서로 Nexo 뉴스를 배치합니다.
+    msg += "📰 <b>Nexo 최신 뉴스 (Top 3)</b>\n"
+    if nexo_news:
+        for i, news in enumerate(nexo_news, 1):
+            title = html_escape(news.get("title", "제목 없음"))
+            source = html_escape(news.get("source", "알 수 없음"))
+            url = news.get("url", "")
+
+            # 발행 시간 파싱 및 한국 시간(KST)으로 변환
+            published = news.get("published_at", "")
+            time_str = ""
+            if published:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    pub_dt = parsedate_to_datetime(published)
+                    pub_kst = pub_dt.astimezone(KST)
+                    time_str = pub_kst.strftime("%m/%d %H:%M")
+                except (ValueError, TypeError):
+                    time_str = ""
+
+            # HTML 링크로 뉴스 제목 구성
+            if url:
+                msg += f"\n{i}. <a href='{url}'>{title}</a>\n"
+            else:
+                msg += f"\n{i}. {title}\n"
+
+            msg += f"   📎 {source}"
+            if time_str:
+                msg += f" | {time_str}"
+            msg += "\n"
+    else:
+        msg += "  ⚠️ 현재 Nexo 관련 뉴스가 없습니다.\n"
 
     msg += "\n━━━━━━━━━━━━━━━"
 
@@ -732,6 +781,8 @@ def main():
     # -----------------------------------------------
     # 암호화폐 관련 최신 뉴스 Top 3 수집
     crypto_news = fetch_crypto_news(count=3)
+    # 바이낸스 관련 최신 뉴스 Top 3 수집 (신규 추가)
+    binance_news = fetch_binance_news(count=3)
     # Nexo 관련 최신 뉴스 Top 3 수집
     nexo_news = fetch_nexo_news(count=3)
 
@@ -748,8 +799,9 @@ def main():
     # -----------------------------------------------
     # Step 5: 메시지 구성
     # -----------------------------------------------
-    # 새로 추가된 nexo_price 데이터를 포함하여 텔레그램 메시지를 빌드합니다.
-    message = build_message(crypto_news, nexo_news, upbit_prices, btc_usd_price, nexo_price)
+    # 새로 추가된 binance_news 및 nexo_price 데이터를 포함하여 텔레그램 메시지를 빌드합니다.
+    # 뉴스 순서: 암호화폐 뉴스 -> 바이낸스 뉴스 -> Nexo 뉴스
+    message = build_message(crypto_news, binance_news, nexo_news, upbit_prices, btc_usd_price, nexo_price)
     print("\n--- 전송할 메시지 미리보기 ---")
     print(message)
     print("--- 미리보기 끝 ---\n")
