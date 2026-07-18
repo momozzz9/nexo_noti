@@ -2,7 +2,7 @@
 =============================================================================
 Telegram 정기 브리핑 스크립트
 =============================================================================
-실행 스케줄 (KST): 매일 06:00~23:00까지 2시간 단위 (06:00, 08:00, ..., 22:00 KST) 발송
+실행 스케줄 (KST): 매일 07:00, 11:00, 15:00, 18:00, 22:00 발송
 
 기능:
   1. Google News RSS를 통해 Nexo 관련 최신 뉴스 3건 수집 (무료, API 키 불필요)
@@ -478,10 +478,339 @@ def fetch_nexo_price() -> dict:
     return {}
 
 
+def fetch_eth_usd_price() -> dict:
+    """
+    외부 API를 사용하여 ETH/USDT 현재 가격 및 전일 대비 변화율 정보를 조회한다.
+    우선순위:
+      1. Binance 24hr 티커 API (현재가 + 변화율 모두 포함)
+      2. CoinGecko API (Binance 실패 시 fallback, 변화율 포함)
+
+    Returns:
+        ETH/USDT 가격 정보 딕셔너리:
+          trade_price       : 현재가 (float, USD)
+          change_price      : 전일 대비 변동 금액 (float, USD, 절대값)
+          change_rate_pct   : 전일 대비 변동률 (float, %, 절대값)
+          change_direction  : 변동 방향 문자열 ("RISE" / "FALL" / "EVEN")
+          source            : 데이터 제공처 문자열
+    """
+    print("[INFO] ETH/USDT 현재가 및 변화율 조회 중...")
+
+    # -------------------------------------------------------
+    # 1순위: Binance 24hr 티커 API (ETHUSDT)
+    # 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회합니다.
+    # -------------------------------------------------------
+    try:
+        url_binance = "https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT"
+        response = requests.get(url_binance, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            # 현재가 (lastPrice)
+            trade_price = float(data.get("lastPrice", 0))
+            # 전일 대비 변동 금액 (priceChange, 양수=상승, 음수=하락)
+            change_price = float(data.get("priceChange", 0))
+            # 전일 대비 변동률 (priceChangePercent, 양수=상승, 음수=하락)
+            change_rate_pct = float(data.get("priceChangePercent", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_price > 0:
+                    change_direction = "RISE"
+                elif change_price < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                print(f"[INFO] ETH/USDT 현재가 (Binance 24hr): ${trade_price:,.2f} ({change_rate_pct:+.2f}%)")
+                # 절대값으로 저장하고, 방향(change_direction)으로 부호를 판단합니다.
+                return {
+                    "trade_price": trade_price,
+                    "change_price": abs(change_price),
+                    "change_rate_pct": abs(change_rate_pct),
+                    "change_direction": change_direction,
+                    "source": "Binance",
+                }
+        else:
+            print(f"[경고] Binance ETH/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        # 시세 조회 중 오류 발생 시 디버깅을 위해 예외 메시지 출력
+        print(f"[경고] Binance 24hr 티커 조회 실패 (ETH): {e}")
+
+    # -------------------------------------------------------
+    # 2순위 fallback: CoinGecko API (변화율 포함)
+    # Binance가 차단되거나 실패할 경우 CoinGecko로 대체합니다.
+    # ETH는 CoinGecko에 'ethereum' id로 등록되어 있습니다.
+    # -------------------------------------------------------
+    try:
+        print("[INFO] ETH/USDT CoinGecko fallback 시도 중...")
+        url_coingecko = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "ethereum",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",   # 24시간 변동률 포함
+        }
+        response = requests.get(url_coingecko, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            eth_data = data.get("ethereum", {})
+            trade_price = float(eth_data.get("usd", 0))
+            # CoinGecko는 24h 변동률(%)만 제공하며, 변동 금액은 직접 계산해야 합니다.
+            change_rate_pct = float(eth_data.get("usd_24h_change", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_rate_pct > 0:
+                    change_direction = "RISE"
+                elif change_rate_pct < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                # 전일 종가 역산: 현재가 / (1 + 변동률/100) → 변동 금액 계산
+                prev_price = trade_price / (1 + change_rate_pct / 100) if change_rate_pct != -100 else trade_price
+                change_price = abs(trade_price - prev_price)
+
+                print(f"[INFO] ETH/USDT 현재가 (CoinGecko): ${trade_price:,.2f} ({change_rate_pct:+.2f}%)")
+                return {
+                    "trade_price": trade_price,
+                    "change_price": change_price,
+                    "change_rate_pct": abs(change_rate_pct),  # 절대값으로 저장
+                    "change_direction": change_direction,
+                    "source": "CoinGecko",
+                }
+        else:
+            print(f"[경고] CoinGecko ETH/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        print(f"[오류] CoinGecko ETH/USDT 조회 실패: {e}")
+
+    # 모든 API 실패 시 빈 딕셔너리 반환
+    print("[오류] ETH/USDT 가격 조회 모든 API 실패")
+    return {}
+
+
+def fetch_bnb_usd_price() -> dict:
+    """
+    외부 API를 사용하여 BNB/USDT 현재 가격 및 전일 대비 변화율 정보를 조회한다.
+    우선순위:
+      1. Binance 24hr 티커 API (현재가 + 변화율 모두 포함)
+      2. CoinGecko API (Binance 실패 시 fallback, 변화율 포함)
+
+    Returns:
+        BNB/USDT 가격 정보 딕셔너리:
+          trade_price       : 현재가 (float, USD)
+          change_price      : 전일 대비 변동 금액 (float, USD, 절대값)
+          change_rate_pct   : 전일 대비 변동률 (float, %, 절대값)
+          change_direction  : 변동 방향 문자열 ("RISE" / "FALL" / "EVEN")
+          source            : 데이터 제공처 문자열
+    """
+    print("[INFO] BNB/USDT 현재가 및 변화율 조회 중...")
+
+    # -------------------------------------------------------
+    # 1순위: Binance 24hr 티커 API (BNBUSDT)
+    # 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회합니다.
+    # -------------------------------------------------------
+    try:
+        url_binance = "https://api.binance.com/api/v3/ticker/24hr?symbol=BNBUSDT"
+        response = requests.get(url_binance, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            # 현재가 (lastPrice)
+            trade_price = float(data.get("lastPrice", 0))
+            # 전일 대비 변동 금액 (priceChange, 양수=상승, 음수=하락)
+            change_price = float(data.get("priceChange", 0))
+            # 전일 대비 변동률 (priceChangePercent, 양수=상승, 음수=하락)
+            change_rate_pct = float(data.get("priceChangePercent", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_price > 0:
+                    change_direction = "RISE"
+                elif change_price < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                print(f"[INFO] BNB/USDT 현재가 (Binance 24hr): ${trade_price:,.2f} ({change_rate_pct:+.2f}%)")
+                # 절대값으로 저장하고, 방향(change_direction)으로 부호를 판단합니다.
+                return {
+                    "trade_price": trade_price,
+                    "change_price": abs(change_price),
+                    "change_rate_pct": abs(change_rate_pct),
+                    "change_direction": change_direction,
+                    "source": "Binance",
+                }
+        else:
+            print(f"[경고] Binance BNB/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        # 시세 조회 중 오류 발생 시 디버깅을 위해 예외 메시지 출력
+        print(f"[경고] Binance 24hr 티커 조회 실패 (BNB): {e}")
+
+    # -------------------------------------------------------
+    # 2순위 fallback: CoinGecko API (변화율 포함)
+    # Binance가 차단되거나 실패할 경우 CoinGecko로 대체합니다.
+    # BNB는 CoinGecko에 'binancecoin' id로 등록되어 있습니다.
+    # -------------------------------------------------------
+    try:
+        print("[INFO] BNB/USDT CoinGecko fallback 시도 중...")
+        url_coingecko = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "binancecoin",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",   # 24시간 변동률 포함
+        }
+        response = requests.get(url_coingecko, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            bnb_data = data.get("binancecoin", {})
+            trade_price = float(bnb_data.get("usd", 0))
+            # CoinGecko는 24h 변동률(%)만 제공하며, 변동 금액은 직접 계산해야 합니다.
+            change_rate_pct = float(bnb_data.get("usd_24h_change", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_rate_pct > 0:
+                    change_direction = "RISE"
+                elif change_rate_pct < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                # 전일 종가 역산: 현재가 / (1 + 변동률/100) → 변동 금액 계산
+                prev_price = trade_price / (1 + change_rate_pct / 100) if change_rate_pct != -100 else trade_price
+                change_price = abs(trade_price - prev_price)
+
+                print(f"[INFO] BNB/USDT 현재가 (CoinGecko): ${trade_price:,.2f} ({change_rate_pct:+.2f}%)")
+                return {
+                    "trade_price": trade_price,
+                    "change_price": change_price,
+                    "change_rate_pct": abs(change_rate_pct),  # 절대값으로 저장
+                    "change_direction": change_direction,
+                    "source": "CoinGecko",
+                }
+        else:
+            print(f"[경고] CoinGecko BNB/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        print(f"[오류] CoinGecko BNB/USDT 조회 실패: {e}")
+
+    # 모든 API 실패 시 빈 딕셔너리 반환
+    print("[오류] BNB/USDT 가격 조회 모든 API 실패")
+    return {}
+
+
+def fetch_baby_usd_price() -> dict:
+    """
+    외부 API를 사용하여 BABY/USDT 현재 가격 및 전일 대비 변화율 정보를 조회한다.
+    우선순위:
+      1. Binance 24hr 티커 API (현재가 + 변화율 모두 포함)
+      2. CoinGecko API (Binance 실패 시 fallback, 변화율 포함)
+
+    Returns:
+        BABY/USDT 가격 정보 딕셔너리:
+          trade_price       : 현재가 (float, USD)
+          change_price      : 전일 대비 변동 금액 (float, USD, 절대값)
+          change_rate_pct   : 전일 대비 변동률 (float, %, 절대값)
+          change_direction  : 변동 방향 문자열 ("RISE" / "FALL" / "EVEN")
+          source            : 데이터 제공처 문자열
+    """
+    print("[INFO] BABY/USDT 현재가 및 변화율 조회 중...")
+
+    # -------------------------------------------------------
+    # 1순위: Binance 24hr 티커 API (BABYUSDT)
+    # 현재가, 전일 대비 변동 금액, 변동률을 한 번에 조회합니다.
+    # -------------------------------------------------------
+    try:
+        url_binance = "https://api.binance.com/api/v3/ticker/24hr?symbol=BABYUSDT"
+        response = requests.get(url_binance, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            # 현재가 (lastPrice)
+            trade_price = float(data.get("lastPrice", 0))
+            # 전일 대비 변동 금액 (priceChange, 양수=상승, 음수=하락)
+            change_price = float(data.get("priceChange", 0))
+            # 전일 대비 변동률 (priceChangePercent, 양수=상승, 음수=하락)
+            change_rate_pct = float(data.get("priceChangePercent", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_price > 0:
+                    change_direction = "RISE"
+                elif change_price < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                print(f"[INFO] BABY/USDT 현재가 (Binance 24hr): ${trade_price:,.4f} ({change_rate_pct:+.2f}%)")
+                # 절대값으로 저장하고, 방향(change_direction)으로 부호를 판단합니다.
+                return {
+                    "trade_price": trade_price,
+                    "change_price": abs(change_price),
+                    "change_rate_pct": abs(change_rate_pct),
+                    "change_direction": change_direction,
+                    "source": "Binance",
+                }
+        else:
+            print(f"[경고] Binance BABY/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        # 시세 조회 중 오류 발생 시 디버깅을 위해 예외 메시지 출력
+        print(f"[경고] Binance 24hr 티커 조회 실패 (BABY): {e}")
+
+    # -------------------------------------------------------
+    # 2순위 fallback: CoinGecko API (변화율 포함)
+    # Binance가 차단되거나 실패할 경우 CoinGecko로 대체합니다.
+    # BABY는 CoinGecko에 'babylon' id로 등록되어 있을 수 있습니다.
+    # -------------------------------------------------------
+    try:
+        print("[INFO] BABY/USDT CoinGecko fallback 시도 중...")
+        url_coingecko = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "babylon",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",   # 24시간 변동률 포함
+        }
+        response = requests.get(url_coingecko, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            baby_data = data.get("babylon", {})
+            trade_price = float(baby_data.get("usd", 0))
+            # CoinGecko는 24h 변동률(%)만 제공하며, 변동 금액은 직접 계산해야 합니다.
+            change_rate_pct = float(baby_data.get("usd_24h_change", 0))
+
+            if trade_price > 0:
+                # 변동 방향 판별 (RISE / FALL / EVEN)
+                if change_rate_pct > 0:
+                    change_direction = "RISE"
+                elif change_rate_pct < 0:
+                    change_direction = "FALL"
+                else:
+                    change_direction = "EVEN"
+
+                # 전일 종가 역산: 현재가 / (1 + 변동률/100) → 변동 금액 계산
+                prev_price = trade_price / (1 + change_rate_pct / 100) if change_rate_pct != -100 else trade_price
+                change_price = abs(trade_price - prev_price)
+
+                print(f"[INFO] BABY/USDT 현재가 (CoinGecko): ${trade_price:,.4f} ({change_rate_pct:+.2f}%)")
+                return {
+                    "trade_price": trade_price,
+                    "change_price": change_price,
+                    "change_rate_pct": abs(change_rate_pct),  # 절대값으로 저장
+                    "change_direction": change_direction,
+                    "source": "CoinGecko",
+                }
+        else:
+            print(f"[경고] CoinGecko BABY/USDT 응답 오류: 상태코드 {response.status_code}")
+    except Exception as e:
+        print(f"[오류] CoinGecko BABY/USDT 조회 실패: {e}")
+
+    # 모든 API 실패 시 빈 딕셔너리 반환
+    print("[오류] BABY/USDT 가격 조회 모든 API 실패")
+    return {}
+
+
+
+
 # =============================================================================
 # 3. 메시지 텍스트 생성
 # =============================================================================
-def build_message(crypto_news: list, binance_news: list, nexo_news: list, upbit_prices: dict, btc_usd_info: dict, nexo_info: dict = None) -> str:
+def build_message(crypto_news: list, binance_news: list, nexo_news: list, upbit_prices: dict, btc_usd_info: dict, nexo_info: dict = None, eth_info: dict = None, bnb_info: dict = None, baby_info: dict = None) -> str:
     """
     수집한 데이터를 Telegram 메시지 형태로 구성한다.
     Telegram은 HTML 형식을 지원하므로 HTML 태그를 사용한다.
@@ -492,6 +821,9 @@ def build_message(crypto_news: list, binance_news: list, nexo_news: list, upbit_
         upbit_prices: 업비트 가격 정보 딕셔너리 (USDT/KRW, BTC/KRW)
         btc_usd_info: 외부 API BTC/USD 가격 정보
         nexo_info: 외부 API NEXO 가격 정보 (NEXO/USDT)
+        eth_info: 외부 API ETH 가격 정보 (ETH/USDT)
+        bnb_info: 외부 API BNB 가격 정보 (BNB/USDT)
+        baby_info: 외부 API BABY 가격 정보 (BABY/USDT)
 
     Returns:
         Telegram으로 전송할 HTML 메시지 문자열
@@ -556,6 +888,71 @@ def build_message(crypto_news: list, binance_news: list, nexo_news: list, upbit_
     else:
         msg += "  BTC/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
 
+    # 2-1. ETH/USDT 가격 정보 출력 처리 (BTC 바로 아래에 배치)
+    if eth_info:
+        eth_usd_price = eth_info.get("trade_price", 0)
+        eth_change_direction = eth_info.get("change_direction", "")
+        eth_change_rate = eth_info.get("change_rate_pct")     # 변동률 % (없으면 None)
+
+        # 변동 방향에 따른 부호 기호 설정 (+/-)
+        if eth_change_direction == "RISE":
+            sign = "+"
+        elif eth_change_direction == "FALL":
+            sign = "-"
+        else:
+            sign = ""
+
+        # 변화율 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
+        if eth_change_direction and eth_change_rate is not None:
+            msg += f"  ETH/USDT: <b>${eth_usd_price:,.2f}</b> ({sign}{eth_change_rate:.2f}%)\n"
+        else:
+            msg += f"  ETH/USDT: <b>${eth_usd_price:,.2f}</b>\n"
+    else:
+        msg += "  ETH/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
+
+    # 2-2. BNB/USDT 가격 정보 출력 처리 (ETH 바로 아래에 배치)
+    if bnb_info:
+        bnb_usd_price = bnb_info.get("trade_price", 0)
+        bnb_change_direction = bnb_info.get("change_direction", "")
+        bnb_change_rate = bnb_info.get("change_rate_pct")     # 변동률 % (없으면 None)
+
+        # 변동 방향에 따른 부호 기호 설정 (+/-)
+        if bnb_change_direction == "RISE":
+            sign = "+"
+        elif bnb_change_direction == "FALL":
+            sign = "-"
+        else:
+            sign = ""
+
+        # 변화율 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
+        if bnb_change_direction and bnb_change_rate is not None:
+            msg += f"  BNB/USDT: <b>${bnb_usd_price:,.2f}</b> ({sign}{bnb_change_rate:.2f}%)\n"
+        else:
+            msg += f"  BNB/USDT: <b>${bnb_usd_price:,.2f}</b>\n"
+    else:
+        msg += "  BNB/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
+
+    # 2-3. BABY/USDT 가격 정보 출력 처리 (BNB 바로 아래에 배치)
+    if baby_info:
+        baby_usd_price = baby_info.get("trade_price", 0)
+        baby_change_direction = baby_info.get("change_direction", "")
+        baby_change_rate = baby_info.get("change_rate_pct")     # 변동률 % (없으면 None)
+
+        # 변동 방향에 따른 부호 기호 설정 (+/-)
+        if baby_change_direction == "RISE":
+            sign = "+"
+        elif baby_change_direction == "FALL":
+            sign = "-"
+        else:
+            sign = ""
+
+        # 변화율 정보가 있는 경우 괄호 안에 부호와 함께 표시, 없으면 현재가만 표시
+        if baby_change_direction and baby_change_rate is not None:
+            msg += f"  BABY/USDT: <b>${baby_usd_price:,.4f}</b> ({sign}{baby_change_rate:.2f}%)\n"
+        else:
+            msg += f"  BABY/USDT: <b>${baby_usd_price:,.4f}</b>\n"
+    else:
+        msg += "  BABY/USDT: ⚠️ 가격 정보를 가져올 수 없습니다.\n"
     # 3. NEXO/USDT 가격 정보 출력 처리 (가격 및 상승률 형식으로 단순화)
     if nexo_info:
         nexo_usd_price = nexo_info.get("trade_price", 0)
@@ -793,6 +1190,12 @@ def main():
     upbit_prices = fetch_upbit_prices()
     # 외부 API에서 BTC/USD 가격 조회
     btc_usd_price = fetch_btc_usd_price()
+    # 외부 API (Binance)에서 ETH/USDT 가격 조회 (추가됨)
+    eth_usd_price = fetch_eth_usd_price()
+    # 외부 API (Binance)에서 BNB/USDT 가격 조회 (추가됨)
+    bnb_usd_price = fetch_bnb_usd_price()
+    # 외부 API (Binance)에서 BABY/USDT 가격 조회 (추가됨)
+    baby_usd_price = fetch_baby_usd_price()
     # 외부 API (Binance)에서 NEXO/USDT 가격 조회 (추가됨)
     nexo_price = fetch_nexo_price()
 
@@ -801,7 +1204,8 @@ def main():
     # -----------------------------------------------
     # 새로 추가된 binance_news 및 nexo_price 데이터를 포함하여 텔레그램 메시지를 빌드합니다.
     # 뉴스 순서: 암호화폐 뉴스 -> 바이낸스 뉴스 -> Nexo 뉴스
-    message = build_message(crypto_news, binance_news, nexo_news, upbit_prices, btc_usd_price, nexo_price)
+    # eth_usd_price를 추가하여 ETH/USDT 가격도 메시지에 포함합니다.
+    message = build_message(crypto_news, binance_news, nexo_news, upbit_prices, btc_usd_price, nexo_price, eth_usd_price, bnb_usd_price, baby_usd_price)
     print("\n--- 전송할 메시지 미리보기 ---")
     print(message)
     print("--- 미리보기 끝 ---\n")
